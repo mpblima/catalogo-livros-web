@@ -184,7 +184,7 @@ export function BookEditor({
       const extra = JSON.parse(extras);
       if (!extra || Array.isArray(extra) || typeof extra !== "object")
         throw Error("Os outros metadados devem ser um objeto JSON.");
-      const raw = String(book.metadata.isbn || "");
+      const raw = String(book.metadata.isbn || normalizeISBN(code) || "");
       if (raw && !normalizeISBN(raw))
         throw Error(
           "ISBN inválido. Corrija o código ou deixe o ISBN em branco para cadastro manual.",

@@ -3,7 +3,7 @@
 Aplicação web em desenvolvimento, independente do [catálogo desktop](https://github.com/mpblima/catalogo-livros).
 Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e autenticação por e-mail/senha no Clerk. Convites de compartilhamento enviados pela API HTTPS do Sender.
 
-**Estado:** primeira etapa implementada e testada localmente. Nenhum serviço cloud foi configurado ou publicado por este repositório. A paridade com o desktop e a sincronização ainda não estão concluídas.
+**Estado:** aplicação publicada em https://biblioteca.praesens.tech, com API no Render e PostgreSQL no Supabase. O cadastro web foi alinhado aos campos do editor desktop. A paridade completa e a sincronização com o desktop ainda não estão concluídas.
 
 ## Disponível no código
 
@@ -21,7 +21,7 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 
 ## Próximas etapas ainda pendentes
 
-1. Configurar e validar Clerk, Supabase, Render, Vercel, Sender e DNS com as contas do proprietário.
+1. Concluir a configuração e a validação do Sender e das credenciais Google de produção.
 2. Validar login real, criação de senha, recuperação de acesso e entrega de convites entre duas contas.
 3. Completar a gestão de árvore de categorias, busca ampliada de capas em livrarias e agrupamento de edições/amostras.
 4. Implementar sincronização bidirecional, associação de conta e botão no desktop, incluindo conflitos e retomada após falhas. A tabela `sync_links` é uma reserva de modelo; não existe endpoint de sincronização implementado.
