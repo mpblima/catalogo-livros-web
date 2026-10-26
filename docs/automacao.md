@@ -4,7 +4,7 @@
 
 Pull requests executam testes React, compilação Vite/TypeScript, testes Go com race detector e PostgreSQL descartável, testes transacionais do migrador, verificação Go e build da imagem Docker de produção. Nenhum segredo de produção é necessário para esses testes.
 
-A publicação em `main` depende dos três jobs. O job `production` está condicionado à variável `DEPLOY_ENABLED=true` e ao ambiente GitHub `production`. Antes de publicar, cria um backup criptografado, restaura esse backup em um PostgreSQL descartável, aplica as migrações pendentes, solicita a versão testada da API na Render, espera essa versão no healthcheck e solicita a publicação na Vercel. O pipeline não restaura dados no banco real.
+A publicação em `main` depende dos três jobs. O job `production` está condicionado à variável `DEPLOY_ENABLED=true` e ao ambiente GitHub `production`. Antes de publicar, cria um backup criptografado, restaura esse backup em um PostgreSQL descartável, aplica as migrações pendentes e solicita a versão testada da API na Render. A integração Git da Vercel publica o mesmo commit automaticamente; o build espera a API correspondente ficar saudável, e o pipeline só termina quando os endpoints públicos confirmam as duas revisões. O pipeline não restaura dados no banco real.
 
 ## Configuração única
 
@@ -14,14 +14,13 @@ No repositório GitHub, Settings → Secrets and variables → Actions:
 |---|---|---|
 | Secret | `PRODUCTION_DATABASE_URL` | Conexão privada Supabase com `sslmode=verify-full` e certificado `certs/prod-ca-2021.crt` |
 | Secret | `RENDER_DEPLOY_HOOK_URL` | Render → serviço → Settings → Deploy Hook |
-| Secret | `VERCEL_DEPLOY_HOOK_URL` | Vercel → projeto → Settings → Git → Deploy Hooks; branch `main` |
 | Variable | `BACKUP_AGE_RECIPIENT` | Chave pública age do responsável pelo backup |
 | Variable | `BACKUP_ENABLED` | `true`, depois do teste de backup/restauração |
-| Variable | `DEPLOY_ENABLED` | `true`, somente depois da configuração dos dois hooks e da adoção do banco existente |
+| Variable | `DEPLOY_ENABLED` | `true`, somente depois da configuração do hook Render, integração Git Vercel, backup e adoção do banco existente |
 
 A conexão do banco já foi cadastrada como secret criptografado, e a chave pública de backup já foi cadastrada como variable. A chave privada está somente neste computador, em `~/.config/catalogo-cloud/backup.agekey`, com permissão 0600. Ela precisa ser guardada também no gerenciador de senhas do responsável; perder essa chave impede recuperar os backups. Não colocar a chave privada no repositório, no workflow ou no chat.
 
-Criar o ambiente `production` no GitHub e restringi-lo à branch `main`. Na Render, depois de cadastrar o hook, definir Auto Deploy como Off para que somente o workflow publique. A Vercel mantém a integração Git e o hook; o build de produção aguarda a mesma revisão estar saudável na API, evitando publicar uma interface antes do backend correspondente.
+Criar o ambiente `production` no GitHub e restringi-lo à branch `main`. Na Render, depois de cadastrar o hook, definir Auto Deploy como Off para que somente o workflow publique. Na Vercel, manter a integração Git da branch `main` ativa; o build de produção aguarda a mesma revisão estar saudável na API, evitando publicar uma interface antes do backend correspondente.
 
 Não ativar `DEPLOY_ENABLED` antes desses passos. Enquanto desativado, o resumo do workflow informa que a publicação está pendente de configuração; testes verdes não significam implantação em produção.
 

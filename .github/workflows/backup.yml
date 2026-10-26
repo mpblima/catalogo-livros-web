@@ -21,8 +21,15 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Install backup tools
-        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client-17 age
+      - name: Install PostgreSQL 17 client and backup tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ca-certificates curl age
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --location --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          printf 'Types: deb\nURIs: https://apt.postgresql.org/pub/repos/apt\nSuites: noble-pgdg\nArchitectures: %s\nComponents: main\nSigned-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc\n' "$(dpkg --print-architecture)" | sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
       - name: Encrypt backup and prove restore
         working-directory: backend
         env:

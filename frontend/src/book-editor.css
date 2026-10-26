@@ -1,7 +1,9 @@
-.book-editor {
-  width: min(100%, 1040px);
-  padding: 32px;
+.dialog.book-editor {
+  width: min(1040px, 100%);
+  padding: clamp(20px, 3vw, 32px);
   max-height: calc(100dvh - 70px);
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 .book-editor h2 {
   margin-bottom: 8px;
@@ -147,7 +149,7 @@
   flex-wrap: wrap;
 }
 @media (max-width: 768px) {
-  .book-editor {
+  .dialog.book-editor {
     padding: 28px 20px;
     max-height: calc(100dvh - 30px);
   }

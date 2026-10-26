@@ -106,7 +106,6 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
       EXPECTED_REVISION: ${{ github.sha }}
       BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
     steps:
@@ -119,8 +118,15 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Check deployment configuration
         run: python3 scripts/deploy.py preflight
-      - name: Install backup tools
-        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client-17 age
+      - name: Install PostgreSQL 17 client and backup tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ca-certificates curl age
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --location --output /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          printf 'Types: deb\nURIs: https://apt.postgresql.org/pub/repos/apt\nSuites: noble-pgdg\nArchitectures: %s\nComponents: main\nSigned-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc\n' "$(dpkg --print-architecture)" | sudo tee /etc/apt/sources.list.d/pgdg.sources >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
       - name: Back up and test restore before migration
         working-directory: backend
         env:
@@ -140,8 +146,6 @@ jobs:
         run: python3 scripts/deploy.py backend
       - name: Wait for tested backend
         run: python3 scripts/smoke.py --web '' --revision "$EXPECTED_REVISION" --attempts 60
-      - name: Deploy frontend
-        run: python3 scripts/deploy.py frontend
       - name: Check public endpoints
         run: python3 scripts/smoke.py --revision "$EXPECTED_REVISION" --attempts 24
   deployment-setup:
