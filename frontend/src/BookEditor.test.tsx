@@ -96,6 +96,28 @@ describe("cadastro equivalente ao desktop", () => {
       /livros_fisicos\/programacao\/java/,
     );
   });
+  it("sugere categoria pelo assunto e preserva uma personalização", async () => {
+    const save = vi.fn();
+    render(<Form lookup={vi.fn()} onSave={save} />);
+    const category = screen.getByLabelText(/Categoria/);
+    fireEvent.change(screen.getByLabelText("Assunto"), {
+      target: { value: "Java" },
+    });
+    expect(category).toHaveProperty(
+      "value",
+      "livros_fisicos/programacao/java/fundamentos_e_referencia",
+    );
+    fireEvent.change(category, { target: { value: "Minha categoria" } });
+    fireEvent.change(screen.getByLabelText("Assunto"), {
+      target: { value: "Literatura" },
+    });
+    expect(category).toHaveProperty("value", "Minha categoria");
+    fireEvent.change(screen.getByLabelText("Título *"), {
+      target: { value: "Livro de teste" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Salvar livro" }));
+    expect(save.mock.calls[0][0].category).toBe("Minha categoria");
+  });
   it("ignora resposta atrasada após trocar o código", async () => {
     let finish!: (b: Book) => void;
     const lookup = vi.fn(

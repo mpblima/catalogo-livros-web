@@ -103,6 +103,22 @@ export function BookEditor({
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
   const customCategory = useRef(Boolean(book.category));
+  const hasClassificationInput = Boolean(
+    book.title ||
+      book.metadata.subtitle ||
+      book.metadata.subject ||
+      book.metadata.keywords ||
+      book.summary,
+  );
+  const suggestedCategory =
+    book.kind === "physical" &&
+    !customCategory.current &&
+    hasClassificationInput
+      ? classify(
+          `${book.title} ${book.metadata.subtitle || ""}`,
+          `${book.metadata.subject || ""} ${book.metadata.keywords || ""} ${book.summary}`,
+        )
+      : book.category;
   useEffect(
     () => () => {
       request.current++;
@@ -368,7 +384,7 @@ export function BookEditor({
                       ? " · automática"
                       : ""}
                     <input
-                      value={book.category}
+                      value={suggestedCategory}
                       onChange={(e) => {
                         customCategory.current = Boolean(e.target.value);
                         onChange({ ...book, category: e.target.value });
