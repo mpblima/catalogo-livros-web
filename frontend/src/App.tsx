@@ -1,3 +1,5 @@
+import { DeviceConnection, Devices } from "./DeviceConnection";
+import { BookCover } from "./BookCover";
 import { PrivacyNotice } from "./PrivacyNotice";
 import {
   CategoryTree,
@@ -21,6 +23,7 @@ type Account = {
 type Catalog = { id: string; name: string; owner: boolean };
 
 type Comment = {
+  origin?: string;
   id: string;
   body: string;
   created_at: string;
@@ -67,6 +70,20 @@ export default function App() {
   const [versions, setVersions] = useState<Record<string, string>>({});
   const [categoryManager, setCategoryManager] = useState(false);
   const [relationBook, setRelationBook] = useState<Book | null>(null);
+  const [pairing, setPairing] = useState("");
+  const [deviceManager, setDeviceManager] = useState(false);
+  useEffect(() => {
+    if (account)
+      setPairing(
+        new URLSearchParams(window.location.search).get("conectar") || "",
+      );
+  }, [Boolean(account)]);
+  const closePairing = () => {
+    setPairing("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("conectar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  };
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -229,7 +246,15 @@ export default function App() {
     };
   }, [catalog, reload]);
   useEffect(() => {
-    if (!editing && !selected && !panel && !categoryManager && !relationBook)
+    if (
+      !editing &&
+      !selected &&
+      !panel &&
+      !categoryManager &&
+      !relationBook &&
+      !pairing &&
+      !deviceManager
+    )
       return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
@@ -253,6 +278,8 @@ export default function App() {
         setPanel(null);
         setCategoryManager(false);
         setRelationBook(null);
+        setDeviceManager(false);
+        closePairing();
       }
       if (event.key === "Tab") {
         const items = focusable();
@@ -278,6 +305,8 @@ export default function App() {
     panel,
     categoryManager,
     Boolean(relationBook),
+    Boolean(pairing),
+    deviceManager,
   ]);
   const base = `/catalogs/${catalog}`;
   const current = catalogs.find((c) => c.id === catalog);
@@ -472,6 +501,12 @@ export default function App() {
           >
             Gerenciar categorias
           </button>
+          <button
+            className="privacy-link"
+            onClick={() => setDeviceManager(true)}
+          >
+            Dispositivos conectados
+          </button>
           <PrivacyNotice />
           <div className="aside-note">
             Um catálogo para organizar.
@@ -589,19 +624,14 @@ export default function App() {
                   return (
                     <article key={b.id} className="book">
                       <div className="cover">
-                        {b.cover_url ? (
-                          <img
-                            src={b.cover_url}
-                            alt={`Capa de ${b.title}`}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <span className="cover-title" aria-hidden="true">
-                            {b.title}
-                            <small>{String(b.metadata.author || "")}</small>
-                          </span>
-                        )}
+                        <BookCover
+                          url={b.cover_url}
+                          stored={b.metadata._stored_cover === true}
+                          catalog={catalog}
+                          id={b.id}
+                          version={b.version}
+                          title={b.title}
+                        />
                       </div>
                       <div className="book-info">
                         <p className="eyebrow">
@@ -701,6 +731,17 @@ export default function App() {
           )}
         </main>
       </div>
+      {pairing && (
+        <DeviceConnection
+          pair={pairing}
+          catalogs={catalogs}
+          api={api}
+          onClose={closePairing}
+        />
+      )}
+      {deviceManager && (
+        <Devices api={api} onClose={() => setDeviceManager(false)} />
+      )}
       {categoryManager && (
         <CategoryManager
           paths={categoryPaths}
@@ -727,6 +768,7 @@ export default function App() {
         <BookEditor
           key={editing.id || editing.kind}
           book={editing}
+          catalog={catalog}
           busy={busy}
           serverError={error}
           onChange={setEditing}
@@ -774,6 +816,7 @@ export default function App() {
                   <strong>{c.author.name}</strong>
                   <small>
                     {c.author.email} ·{" "}
+                    {c.origin === "desktop" ? "Desktop" : "Web"} ·{" "}
                     {new Date(c.created_at).toLocaleString("pt-BR")}
                   </small>
                   <p>{c.body}</p>

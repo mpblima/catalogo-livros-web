@@ -33,6 +33,24 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Prepare disposable roles
         run: psql -h localhost -U postgres -c 'create role anon; create role authenticated;'
+      - name: Read tested desktop revision
+        id: desktop
+        run: |
+          revision=$(cat .github/desktop-sync-ref)
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7.0.1
+        with:
+          repository: mpblima/catalogo-livros
+          ref: ${{ steps.desktop.outputs.revision }}
+          path: desktop-client
+          persist-credentials: false
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: desktop-client/pom.xml
       - name: Apply migrations and prove repeatability
         working-directory: backend
         run: |
@@ -40,6 +58,8 @@ jobs:
           go run ./cmd/migrate
       - name: Test permissions, migrations, conflicts and shared catalog
         working-directory: backend
+        env:
+          DESKTOP_REPO: ${{ github.workspace }}/desktop-client
         run: go test -race ./...
       - name: Vet
         working-directory: backend

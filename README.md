@@ -3,29 +3,34 @@
 Aplicação web em desenvolvimento, independente do [catálogo desktop](https://github.com/mpblima/catalogo-livros).
 Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e autenticação por e-mail/senha no Clerk. Convites de compartilhamento enviados pela API HTTPS do Sender.
 
-**Estado:** aplicação publicada em https://biblioteca.praesens.tech, com API no Render e PostgreSQL no Supabase. O cadastro web foi alinhado aos campos do editor desktop. A paridade completa e a sincronização com o desktop ainda não estão concluídas.
+**Estado:** aplicação publicada em https://biblioteca.praesens.tech, com API no Render e PostgreSQL no Supabase. O cadastro web foi alinhado aos campos do editor desktop. A sincronização bidirecional está implementada e possui testes de protocolo Java/Go com PostgreSQL descartável. A abertura dos arquivos e o acompanhamento da leitura ficam no desktop.
 
 ## Disponível no código
 
 - Entrada e criação de conta usando os componentes do Clerk. E-mail verificado exigido pelo backend; senhas ficam no Clerk.
 - Catálogo próprio criado automaticamente na primeira entrada. Acesso gratuito inicialmente liberado a novas contas.
-- Cadastro separado de livros físicos e digitais, com os campos bibliográficos do editor desktop, resumo, anotações do exemplar, página atual, localização e metadados extras em JSON.
+- Cadastro separado de livros físicos e digitais, com os campos bibliográficos do editor desktop, resumo, anotações do exemplar, localização física e metadados extras em JSON.
 - ISBN/código de barras em destaque: consulta automática após digitação/leitura, preenchimento de dados e capa, classificação pelas regras do desktop e revisão manual antes de salvar. Open Library e Google Books são consultados pelo backend; falhas permitem cadastro manual.
 - Busca por palavras, filtros de assunto/subassunto, tipo, favoritos e leitura. Alterações dos marcadores atualizam a lista após confirmação da API.
-- Caminho físico dos arquivos digitais como texto. Sem upload ou leitor de PDF/EPUB na nuvem; a página atual pode ser registrada manualmente.
+- Caminho físico dos arquivos digitais como texto. Sem upload ou leitor de PDF/EPUB na nuvem; a posição privada do leitor permanece no desktop.
 - Compartilhamento por e-mail verificado com até 50 convidados por catálogo. Contas universais e administradores não têm esse limite. Acesso compartilhado permite consultar, cadastrar, editar e anotar; somente o proprietário gerencia convidados.
 - Convites numa fila persistente, com envio pelo Sender, retentativas e expiração de pendências. A inclusão só fica disponível quando o provedor de e-mail está configurado.
 - Anotações compartilhadas com autor e data atribuídos pelo servidor. Anotações são acrescentadas, não sobrescritas coletivamente.
 - Administração: ativar/suspender acessos, conceder uso ilimitado e adicionar/trocar administradores. O último administrador ativo não pode ser removido. Administração não dá acesso a catálogos privados de outras pessoas.
 - Exportação dos dados da conta/catálogos próprios e registro de solicitação de exclusão para análise administrativa.
 
-## Próximas etapas ainda pendentes
+## Operação e sincronização
 
-1. Concluir a configuração e a validação do Sender e das credenciais Google de produção.
-2. Validar login real, criação de senha, recuperação de acesso e entrega de convites entre duas contas.
-3. Completar a gestão de árvore de categorias, busca ampliada de capas em livrarias e agrupamento de edições/amostras.
-4. Implementar sincronização bidirecional, associação de conta e botão no desktop, incluindo conflitos e retomada após falhas. A tabela `sync_links` é uma reserva de modelo; não existe endpoint de sincronização implementado.
-5. Completar operação de exclusão/anonimização, retenção, aviso de privacidade, backups e restauração antes de abrir ao público.
+- Árvore de categorias com descendentes e gestão de categorias físicas; agrupamento de edições/amostras sem excluir arquivos.
+- Sincronização desktop ↔ nuvem de todos os campos dos livros, inclusive metadados extras, capas, categorias, relações e anotações. Arquivos digitais e estado privado do leitor não são enviados.
+- Associação autorizada no navegador, token por dispositivo, revogação, lotes idempotentes, conflitos com escolha explícita e retomada após falhas.
+- Anotações assinadas pelo servidor com nome, data e origem; mudanças do campo de notas também geram histórico atribuído. Remover um convidado bloqueia novos acessos ao catálogo, inclusive com ETag antigo.
+- Exclusão/anonimização em duas fases com proteção do último administrador, retry do provedor e aviso de privacidade com contato público.
+- CI com testes Go/React/Java integrados, imagem Docker, migrador com checksum e backup criptografado restaurado em ambiente descartável antes da publicação. Consulte [automação](docs/automacao.md) e [sincronização](docs/sincronizacao.md).
+
+### Configuração externa adiada pelo proprietário
+
+Clerk permanece como provedor de identidade. Troca para Supabase Auth, SMTP Sender e credenciais Google ficam para outra etapa. Entrega real de convites/recuperação e fluxos Google precisam de configuração e validação com contas reais; testes automatizados não comprovam a entrega de e-mail.
 
 ## Estrutura
 

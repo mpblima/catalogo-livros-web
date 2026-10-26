@@ -142,7 +142,7 @@ describe("cadastro equivalente ao desktop", () => {
       "value",
       "/Livros/livro.epub",
     );
-    expect(screen.getByLabelText("Página atual")).toHaveProperty("value", "12");
+    expect(screen.queryByLabelText("Página atual")).toBeNull();
     await userEvent.click(
       screen.getByRole("tab", { name: "Outros metadados" }),
     );

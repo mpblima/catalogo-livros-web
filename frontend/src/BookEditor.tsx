@@ -1,3 +1,4 @@
+import { BookCover } from "./BookCover";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Book } from "./book";
 import { classify } from "./classify";
@@ -5,6 +6,7 @@ import "./book-editor.css";
 
 type Props = {
   book: Book;
+  catalog?: string;
   busy: boolean;
   serverError?: string;
   onChange: (book: Book) => void;
@@ -53,6 +55,7 @@ const fields = [
 ];
 export function BookEditor({
   book,
+  catalog = "",
   busy,
   serverError,
   onChange,
@@ -433,6 +436,12 @@ export function BookEditor({
                     onChange={(e) => meta("notes", e.target.value)}
                   />
                 </label>
+                {Boolean(book.metadata.notes_author_name) && (
+                  <small>
+                    Última edição das anotações:{" "}
+                    {String(book.metadata.notes_author_name)}
+                  </small>
+                )}
               </fieldset>
               <fieldset
                 disabled={busy || searching}
@@ -459,17 +468,15 @@ export function BookEditor({
             </div>
             <div className="editor-aside">
               <div className="editor-cover">
-                {book.cover_url && !coverFailed ? (
-                  <img
-                    key={book.cover_url}
-                    src={book.cover_url}
-                    alt={`Capa de ${book.title || "livro"}`}
-                    referrerPolicy="no-referrer"
-                    onError={() => setCoverFailed(true)}
-                  />
-                ) : (
-                  <span>Sem capa</span>
-                )}
+                <BookCover
+                  url={book.cover_url}
+                  stored={book.metadata._stored_cover === true}
+                  catalog={catalog}
+                  id={book.id}
+                  version={book.version}
+                  title={book.title}
+                  onUnavailable={() => setCoverFailed(true)}
+                />
               </div>
               <button
                 type="button"
@@ -510,7 +517,7 @@ export function BookEditor({
                 </div>
               )}
               <fieldset disabled={busy || searching}>
-                <legend>Leitura e localização</legend>
+                <legend>Marcadores do catálogo</legend>
                 <label className="check">
                   <input
                     type="checkbox"
@@ -531,23 +538,15 @@ export function BookEditor({
                   />{" "}
                   Estou lendo
                 </label>
-                <label>
-                  Página atual
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000000}
-                    value={String(book.metadata.page || 1)}
-                    onChange={(e) => meta("page", e.target.value)}
-                  />
-                </label>
-                <label>
-                  Local / estante
-                  <input
-                    value={String(book.metadata.location || "")}
-                    onChange={(e) => meta("location", e.target.value)}
-                  />
-                </label>
+                {book.kind === "physical" && (
+                  <label>
+                    Local / estante
+                    <input
+                      value={String(book.metadata.location || "")}
+                      onChange={(e) => meta("location", e.target.value)}
+                    />
+                  </label>
+                )}
               </fieldset>
             </div>
           </div>

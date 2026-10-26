@@ -70,7 +70,7 @@ func (s *Server) changeCategory(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	tx, err := s.DB.Begin(r.Context())
+	tx, err := s.beginCatalogWrite(r)
 	if err != nil {
 		return err
 	}

@@ -116,6 +116,7 @@ func (s *Server) completeErasure(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 		statements := []string{
+			`update catalog.books set metadata=(metadata-'notes_author_id'-'notes_author_name'-'notes_author_email')||'{"notes_author_name":"Conta excluída"}'::jsonb,version=version+1,updated_at=now() where metadata->>'notes_author_id'=$1`,
 			`delete from catalog.sync_annotations where catalog_id in(select id from catalog.catalogs where owner_id=$1)or device_id in(select id from catalog.sync_devices where user_id=$1)`,
 			`delete from catalog.sync_links where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
 			`delete from catalog.sync_pairings where user_id=$1 or catalog_id in(select id from catalog.catalogs where owner_id=$1)`,

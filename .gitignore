@@ -41,3 +41,5 @@ Thumbs.db
 # Operational script caches
 __pycache__/
 *.pyc
+
+desktop-client/

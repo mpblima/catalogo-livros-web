@@ -286,6 +286,9 @@ func (l lookupClient) find(ctx context.Context, raw string) (Book, error) {
 			}
 		}
 	}
+	if b.CoverURL == "" {
+		b.CoverURL = l.retailerCover(ctx, isbn, b.Title)
+	}
 	return b, nil
 }
 func (s *Server) lookupBook(w http.ResponseWriter, r *http.Request) error {

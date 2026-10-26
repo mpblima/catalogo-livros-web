@@ -32,6 +32,8 @@ type Server struct {
 	limiter        *rateLimiter
 }
 type account struct {
+	DeviceID      string `json:"-"`
+	DeviceCatalog string `json:"-"`
 	Identity
 	Admin     bool `json:"admin"`
 	Enabled   bool `json:"enabled"`
@@ -94,7 +96,14 @@ func (s *Server) Handler() http.Handler {
 		}
 		respond(w, 200, map[string]string{"status": "ok", "revision": os.Getenv("RENDER_GIT_COMMIT")})
 	})
+	mux.HandleFunc("POST /device/pair", s.publicDevice(s.startPair))
+	mux.HandleFunc("GET /device/pair/{pair}", s.publicDevice(s.pairInfo))
+	mux.HandleFunc("POST /device/pair/{pair}/token", s.publicDevice(s.exchangePair))
 	api := http.NewServeMux()
+	api.HandleFunc("POST /api/devices/pair/{pair}/approve", route(s.approvePair))
+ api.HandleFunc("GET /api/devices/pair/{pair}",route(s.pairInfo))
+	api.HandleFunc("GET /api/devices", route(s.devices))
+	api.HandleFunc("DELETE /api/devices/{device}", route(s.revokeDevice))
 	api.HandleFunc("GET /api/me", route(s.me))
 	api.HandleFunc("GET /api/books/lookup", route(s.lookupBook))
 	api.HandleFunc("GET /api/privacy/export", route(s.export))
@@ -110,6 +119,8 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("POST /api/catalogs/{catalog}/relations", route(s.changeRelation))
 	api.HandleFunc("DELETE /api/catalogs/{catalog}/relations", route(s.changeRelation))
 	api.HandleFunc("GET /api/catalogs/{catalog}/books", route(s.books))
+	api.HandleFunc("POST /api/catalogs/{catalog}/sync", route(s.syncCatalog))
+	api.HandleFunc("GET /api/catalogs/{catalog}/books/{book}/cover", route(s.bookCover))
 	api.HandleFunc("POST /api/catalogs/{catalog}/books", route(s.createBook))
 	api.HandleFunc("PUT /api/catalogs/{catalog}/books/{book}", route(s.updateBook))
 	api.HandleFunc("DELETE /api/catalogs/{catalog}/books/{book}", route(s.deleteBook))
@@ -155,10 +166,22 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		if token == "" || token == r.Header.Get("Authorization") {
 			return problem(401, "Entre na sua conta.")
 		}
-		identity, err := s.Auth(r.Context(), token)
+		var identity Identity
+		var err error
+		var deviceID, deviceCatalog string
+		if strings.HasPrefix(token, "catd_") {
+			identity, deviceID, deviceCatalog, err = s.deviceIdentity(r.Context(), token, r.URL.Path)
+		} else {
+			identity, err = s.Auth(r.Context(), token)
+		}
 		if err != nil {
+			var ae apiError
+			if errors.As(err, &ae) {
+				return ae
+			}
 			return problem(401, "Sessão inválida. Entre novamente.")
 		}
+
 		if !s.limiter.allow(identity.ID) {
 			w.Header().Set("Retry-After", "60")
 			return problem(429, "Muitas requisições. Tente novamente em um minuto.")
@@ -170,7 +193,7 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		if erased {
 			return problem(403, "Esta conta foi excluída do serviço.")
 		}
-		a := account{Identity: identity}
+		a := account{Identity: identity, DeviceID: deviceID, DeviceCatalog: deviceCatalog}
 		_, err = s.DB.Exec(r.Context(), `insert into catalog.users(id,email,name) values($1,$2,$3) on conflict(id) do update set email=excluded.email,name=excluded.name`, a.ID, a.Email, a.Name)
 		if err != nil {
 			return err
