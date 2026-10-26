@@ -28,7 +28,7 @@ Saída: cadastro e recuperação de senha funcionando com uma conta de teste ver
 
 Criar projeto no plano Free, guardar a senha do banco em um gerenciador de senhas e escolher uma região próxima do backend. No SQL Editor, executar cada migração da pasta `supabase/migrations/` na ordem numérica, uma vez.
 
-No botão Connect, obter a conexão PostgreSQL pelo pooler em modo de sessão. Configurar `DATABASE_URL` apenas no Render/backend, com `sslmode=verify-full`. Caso a cadeia de certificados exija o certificado CA fornecido pelo Supabase, configurá-lo no ambiente; não desabilitar validação TLS.
+No botão Connect, obter a conexão PostgreSQL pelo pooler em modo de sessão. Configurar `DATABASE_URL` apenas no Render/backend, com `sslmode=verify-full`. O certificado público fornecido pelo painel Supabase está em `backend/certs/prod-ca-2021.crt` e acompanha a imagem Docker. Acrescente `&sslrootcert=certs/prod-ca-2021.crt` à URL com `sslmode=verify-full`. Não desabilitar validação TLS.
 
 O esquema `catalog` é privado. Não adicioná-lo aos schemas expostos pela API pública do Supabase. Não colocar credenciais Postgres ou chave service-role no frontend. A autorização de cada catálogo acontece no Go; as roles públicas não têm acesso ao esquema.
 
