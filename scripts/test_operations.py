@@ -17,3 +17,8 @@ class Operations(unittest.TestCase):
   with patch('smoke.request',side_effect=[(200,b'{"status":"ok"}',{}),(200,b'[]',{})]):self.assertRaises(ValueError,smoke.check,'https://api','')
  def test_smoke_checks_revision(self):
   with patch('smoke.request',return_value=(200,b'{"status":"ok","revision":"old"}',{})):self.assertRaises(ValueError,smoke.check,'https://api','','new')
+
+ def test_smoke_waits_for_matching_frontend_revision(self):
+  import urllib.error
+  responses=[(200,b'{"status":"ok","revision":"new"}',{}),urllib.error.HTTPError('https://api',401,'Unauthorized',{},None),(200,b'<div id="root"></div>',{}),(200,b'{"revision":"old"}',{})]
+  with patch('smoke.request',side_effect=responses):self.assertRaises(ValueError,smoke.check,'https://api','https://web','new')

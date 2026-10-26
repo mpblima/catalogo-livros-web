@@ -18,6 +18,9 @@ def check(api,web,revision=""):
     if web:
         _,body,_=request(web)
         if b'<div id="root"' not in body:raise ValueError("Frontend application root missing")
+        if revision:
+            _,release,_=request(web.rstrip("/")+"/release.json?revision="+revision)
+            if json.loads(release).get("revision")!=revision:raise ValueError("New frontend revision is not live yet")
     return health
 
 def main():

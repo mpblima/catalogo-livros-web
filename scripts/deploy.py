@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Deploy only to configured providers; never print secret URLs or responses."""
-import os,sys,urllib.parse,urllib.request
+import os,sys,re,urllib.parse,urllib.request
 
 def configuration():
     values={k:os.environ.get(k,"") for k in ("DATABASE_URL","RENDER_DEPLOY_HOOK_URL","VERCEL_DEPLOY_HOOK_URL","EXPECTED_REVISION","BACKUP_AGE_RECIPIENT")}
@@ -9,7 +9,7 @@ def configuration():
     for key,host in (("RENDER_DEPLOY_HOOK_URL","api.render.com"),("VERCEL_DEPLOY_HOOK_URL","api.vercel.com")):
         url=urllib.parse.urlsplit(values[key])
         if url.scheme!="https" or url.hostname!=host or url.username:raise ValueError("Invalid provider URL for "+key)
-    if len(values["EXPECTED_REVISION"])!=40:raise ValueError("A full tested commit SHA is required")
+    if not re.fullmatch(r"[0-9a-f]{40}",values["EXPECTED_REVISION"]):raise ValueError("A full tested commit SHA is required")
     return values
 
 def run(mode):
