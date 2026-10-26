@@ -1,0 +1,50 @@
+name: Validate
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: catalogo_test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:catalogo_test@localhost:5432/postgres?sslmode=disable
+      PGPASSWORD: catalogo_test
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Prepare disposable database
+        run: |
+          psql -h localhost -U postgres -c 'create role anon; create role authenticated;'
+          for migration in supabase/migrations/*.sql; do psql -v ON_ERROR_STOP=1 -h localhost -U postgres -f "$migration"; done
+      - name: Test permissions and shared catalog behavior
+        working-directory: backend
+        run: go test -race ./...
+      - name: Vet
+        working-directory: backend
+        run: go vet ./...
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

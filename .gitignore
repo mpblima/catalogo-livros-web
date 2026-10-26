@@ -31,3 +31,9 @@ coverage/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Build metadata and local executables
+*.tsbuildinfo
+/backend/api
+/backend/catalogo-api
+/test-results/

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: catalogo-livros-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: AUTO_ACTIVATE_ACCOUNTS
+        value: "true"
+      - key: FRONTEND_URL
+        value: https://biblioteca.praesens.tech
+      - key: ALLOWED_ORIGINS
+        value: https://biblioteca.praesens.tech
+      - key: SENDER_API_KEY
+        sync: false
+      - key: SENDER_FROM_EMAIL
+        value: convites@praesens.tech
