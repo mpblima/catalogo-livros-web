@@ -11,7 +11,7 @@ Escopo solicitado em 26/10/2026: automação GitHub Actions e restante das imple
 - [x] Exclusão em duas fases com retry do Clerk, proteção do último administrador e preservação de histórico compartilhado sem nome/e-mail, testada em PostgreSQL descartável. Aviso com contato mpblima@gmail.com.
 - [ ] Busca ampliada de capas, teste de autenticação/recuperação e convites Sender reais; credenciais Google/Sender dependem do proprietário.
 
-Repositórios: web em /home/mpblima/Projetos/catalogo_livros_web (branch feature/automacao-e-sincronizacao); desktop em /home/mpblima/Projetos/catalogo_livros (branch feature/automacao-e-sincronizacao, commit fef64c9).
+Repositórios: web em /home/mpblima/Projetos/catalogo_livros_web (branch feature/automacao-e-sincronizacao); desktop em /home/mpblima/Projetos/catalogo_livros (branch feature/automacao-e-sincronizacao, commit d26e354).
 
 A chave privada age foi criada em ~/.config/catalogo-cloud/backup.agekey, fora do Git; backup inicial criptografado em backups/before-automation.dump.age (ignorado). Ferramentas locais de teste em /tmp/catalogo-ci-tools. PostgreSQL descartável catalogo-web-form-tests, porta 55438, nunca usar a URL de produção em TEST_DATABASE_URL.
 
