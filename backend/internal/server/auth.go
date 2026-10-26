@@ -59,3 +59,19 @@ func verifiedIdentity(u *clerk.User) (Identity, error) {
 	}
 	return Identity{}, errors.New("verified primary email required")
 }
+
+func ClerkIdentity(ctx context.Context, id string) (Identity, error) {
+	u, err := user.Get(ctx, id)
+	if err != nil {
+		return Identity{}, err
+	}
+	return verifiedIdentity(u)
+}
+func DeleteClerkIdentity(ctx context.Context, id string) error {
+	_, err := user.Delete(ctx, id)
+	var apiErr *clerk.APIErrorResponse
+	if errors.As(err, &apiErr) && apiErr.HTTPStatusCode == 404 {
+		return nil
+	}
+	return err
+}

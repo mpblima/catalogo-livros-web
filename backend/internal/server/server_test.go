@@ -40,11 +40,18 @@ func TestIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
-	_, err = pool.Exec(context.Background(), `truncate catalog.email_outbox,catalog.audit_events,catalog.privacy_requests,catalog.comments,catalog.sync_links,catalog.books,catalog.members,catalog.catalogs,catalog.access_grants,catalog.users cascade;update catalog.service_settings set initialized=false`)
+	_, err = pool.Exec(context.Background(), `truncate catalog.erased_accounts,catalog.email_outbox,catalog.audit_events,catalog.privacy_requests,catalog.comments,catalog.sync_links,catalog.books,catalog.members,catalog.catalogs,catalog.access_grants,catalog.users cascade;update catalog.service_settings set initialized=false`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := Server{DB: pool, Mailer: testMailer{}, Config: Config{BootstrapAdminEmail: "owner@example.com", AutoActivate: true, Origins: []string{"http://localhost:5173"}, FrontendURL: "http://localhost:5173"}, Auth: func(ctx context.Context, token string) (Identity, error) {
+	deleteCalls := 0
+	s := Server{DeleteIdentity: func(ctx context.Context, id string) error {
+		deleteCalls++
+		if deleteCalls == 1 {
+			return fmt.Errorf("provider unavailable")
+		}
+		return nil
+	}, DB: pool, Mailer: testMailer{}, Config: Config{BootstrapAdminEmail: "owner@example.com", AutoActivate: true, Origins: []string{"http://localhost:5173"}, FrontendURL: "http://localhost:5173"}, Auth: func(ctx context.Context, token string) (Identity, error) {
 		if token == "bad" {
 			return Identity{}, fmt.Errorf("invalid")
 		}
@@ -114,6 +121,30 @@ func TestIntegration(t *testing.T) {
 	expect(b, 201)
 	var book Book
 	_ = json.Unmarshal(b.Body.Bytes(), &book)
+	expect(req("owner", "POST", base+"/categories", `{"path":"livros_fisicos/estudos/antigo"}`), 200)
+	expect(req("other", "POST", base+"/categories", `{"path":"livros_fisicos/invasao"}`), 404)
+	expect(req("owner", "POST", base+"/categories", `{"path":"livros_fisicos/ .. /invalido"}`), 400)
+	expect(req("owner", "PUT", base+"/categories", `{"path":"livros_fisicos/estudos","new_path":"livros_fisicos/referencia"}`), 200)
+	categories := req("owner", "GET", base+"/categories", "")
+	expect(categories, 200)
+	if !strings.Contains(categories.Body.String(), "livros_fisicos/referencia/antigo") || strings.Contains(categories.Body.String(), "estudos") {
+		t.Fatal(categories.Body.String())
+	}
+	expect(req("owner", "DELETE", base+"/categories", `{"path":"livros_fisicos/referencia"}`), 200)
+	another := req("owner", "POST", base+"/books", `{"title":"Outra edição","kind":"digital","format":"EPUB"}`)
+	expect(another, 201)
+	var edition Book
+	json.Unmarshal(another.Body.Bytes(), &edition)
+	relationship := fmt.Sprintf(`{"book_id":%q,"related_book_id":%q,"kind":"sample_of"}`, book.ID, edition.ID)
+	expect(req("owner", "POST", base+"/relations", relationship), 200)
+	links := req("owner", "GET", base+"/relations", "")
+	expect(links, 200)
+	if !strings.Contains(links.Body.String(), "sample_of") {
+		t.Fatal(links.Body.String())
+	}
+	expect(req("other", "POST", base+"/relations", relationship), 404)
+	expect(req("owner", "DELETE", base+"/relations", relationship), 200)
+
 	expect(req("owner", "GET", "/api/catalogs/"+other+"/books", ""), 404) // Even root has no private-catalog bypass.
 	expect(req("owner", "POST", base+"/members", `{"email":"guest@example.com"}`), 201)
 	expect(req("guest", "GET", base+"/books", ""), 200)
@@ -204,6 +235,42 @@ func TestIntegration(t *testing.T) {
 	expect(req("next", "PUT", "/api/admin/access", `{"email":"owner@example.com","enabled":false,"universal":true}`), 200)
 	expect(req("owner", "GET", base+"/books", ""), 403)
 	expect(req("unlimited", "GET", base+"/books", ""), 403) // Suspended owner disables shared cloud access too.
+
+	// Erasure is explicit, preserves a shared annotation, and retries provider failure safely.
+	expect(req("next", "PUT", "/api/admin/access", `{"email":"owner@example.com","enabled":true}`), 200)
+	otherBase := "/api/catalogs/" + other
+	foreignBookResponse := req("other", "POST", otherBase+"/books", `{"title":"Acervo de outra pessoa","kind":"digital"}`)
+	expect(foreignBookResponse, 201)
+	var foreignBook Book
+	json.Unmarshal(foreignBookResponse.Body.Bytes(), &foreignBook)
+	expect(req("other", "POST", otherBase+"/members", `{"email":"owner@example.com"}`), 201)
+	expect(req("owner", "POST", otherBase+"/books/"+foreignBook.ID+"/comments", `{"body":"Preservar o histórico compartilhado"}`), 201)
+	var requestID string
+	if err = pool.QueryRow(context.Background(), `select id::text from catalog.privacy_requests where user_id='owner'`).Scan(&requestID); err != nil {
+		t.Fatal(err)
+	}
+	erasurePath := "/api/admin/privacy/" + requestID + "/complete"
+	expect(req("other", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 403)
+	expect(req("next", "POST", erasurePath, `{"confirmation":""}`), 400)
+	expect(req("next", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 502)
+	expect(req("owner", "GET", "/api/me", ""), 403)
+	var count int
+	if err = pool.QueryRow(context.Background(), `select count(*)from catalog.catalogs where owner_id='owner'`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("owned catalog survived: %d %v", count, err)
+	}
+	remaining := req("other", "GET", otherBase+"/books/"+foreignBook.ID+"/comments", "")
+	expect(remaining, 200)
+	if !strings.Contains(remaining.Body.String(), "Conta excluída") || !strings.Contains(remaining.Body.String(), "Preservar o histórico compartilhado") || strings.Contains(remaining.Body.String(), "owner@example.com") {
+		t.Fatal(remaining.Body.String())
+	}
+	expect(req("next", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 200)
+	expect(req("next", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 200)
+	if deleteCalls != 2 {
+		t.Fatalf("provider retries are not idempotent: %d", deleteCalls)
+	}
+	expect(req("next", "POST", "/api/privacy/erasure", `{}`), 202)
+	pool.QueryRow(context.Background(), `select id::text from catalog.privacy_requests where user_id='next'`).Scan(&requestID)
+	expect(req("next", "POST", "/api/admin/privacy/"+requestID+"/complete", `{"confirmation":"EXCLUIR"}`), 409)
 	// Private schema must not be exposed through Supabase's public roles.
 	var permitted bool
 	err = pool.QueryRow(context.Background(), `select has_schema_privilege('anon','catalog','USAGE')`).Scan(&permitted)

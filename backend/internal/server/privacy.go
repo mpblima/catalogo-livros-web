@@ -1,6 +1,12 @@
 package server
 
-import "net/http"
+import (
+	"errors"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"net/http"
+	"strings"
+)
 
 func (s *Server) export(w http.ResponseWriter, r *http.Request) error {
 	a := who(r)
@@ -47,5 +53,109 @@ func (s *Server) privacyRequests(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	respond(w, 200, out)
+	return nil
+}
+
+// Erasure is executed only for a recorded request and an explicit admin confirmation.
+// Database deletion and the provider call have separate durable phases for safe retries.
+func (s *Server) completeErasure(w http.ResponseWriter, r *http.Request) error {
+	if !who(r).Admin {
+		return problem(403, "Acesso administrativo necessário.")
+	}
+	if s.DeleteIdentity == nil {
+		return problem(503, "Exclusão no provedor de autenticação não configurada.")
+	}
+	if _, err := uuid.Parse(r.PathValue("request")); err != nil {
+		return problem(400, "Solicitação inválida.")
+	}
+	var body struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		return err
+	}
+	if body.Confirmation != "EXCLUIR" {
+		return problem(400, "Confirme a exclusão digitando EXCLUIR.")
+	}
+	ctx := r.Context()
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var initialized bool
+	if err = tx.QueryRow(ctx, `select initialized from catalog.service_settings where singleton for update`).Scan(&initialized); err != nil {
+		return err
+	}
+	var admin bool
+	if err = tx.QueryRow(ctx, `select exists(select 1 from catalog.access_grants where email=$1 and admin and enabled)`, who(r).Email).Scan(&admin); err != nil {
+		return err
+	}
+	if !admin {
+		return problem(403, "Permissão administrativa revogada.")
+	}
+	var target, status, email string
+	if err = tx.QueryRow(ctx, `select p.user_id,p.status,u.email from catalog.privacy_requests p join catalog.users u on u.id=p.user_id where p.id=$1 for update of p`, r.PathValue("request")).Scan(&target, &status, &email); errors.Is(err, pgx.ErrNoRows) {
+		return problem(404, "Solicitação não encontrada.")
+	} else if err != nil {
+		return err
+	}
+	if status == "completed" {
+		respond(w, 200, map[string]string{"status": "completed"})
+		return nil
+	}
+	if status != "provider_pending" {
+		var last bool
+		if err = tx.QueryRow(ctx, `select exists(select 1 from catalog.access_grants where email=$1 and admin and enabled)and(select count(*)from catalog.access_grants where admin and enabled)<=1`, email).Scan(&last); err != nil {
+			return err
+		}
+		if last {
+			return problem(409, "Adicione outro administrador ativo antes de excluir esta conta.")
+		}
+		if _, err = tx.Exec(ctx, `insert into catalog.erased_accounts(user_id)values($1)on conflict do nothing`, target); err != nil {
+			return err
+		}
+		statements := []string{
+			`delete from catalog.sync_annotations where catalog_id in(select id from catalog.catalogs where owner_id=$1)or device_id in(select id from catalog.sync_devices where user_id=$1)`,
+			`delete from catalog.sync_links where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.sync_pairings where user_id=$1 or catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.sync_batches where device_id in(select id from catalog.sync_devices where user_id=$1)`,
+			`delete from catalog.sync_devices where user_id=$1 or catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.email_outbox where catalog_id in(select id from catalog.catalogs where owner_id=$1)or recipient=(select email from catalog.users where id=$1)`,
+			`delete from catalog.comments where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.sync_events where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.book_relations where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.book_covers where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.books where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.categories where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`delete from catalog.members where catalog_id in(select id from catalog.catalogs where owner_id=$1)or email=(select email from catalog.users where id=$1)`,
+			`delete from catalog.catalogs where owner_id=$1`,
+			`delete from catalog.access_grants where email=(select email from catalog.users where id=$1)`,
+		}
+		for _, statement := range statements {
+			if _, err = tx.Exec(ctx, statement, target); err != nil {
+				return err
+			}
+		}
+		if _, err = tx.Exec(ctx, `update catalog.audit_events set resource_id='erased-account' where resource_id=$1`, email); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(ctx, `update catalog.users set name='Conta excluída',email=$2 where id=$1`, target, "erased+"+strings.ReplaceAll(r.PathValue("request"), "-", "")+"@invalid.example"); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(ctx, `update catalog.privacy_requests set status='provider_pending',handled_by=$2 where id=$1`, r.PathValue("request"), who(r).ID); err != nil {
+			return err
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+	if err = s.DeleteIdentity(ctx, target); err != nil {
+		return problem(502, "Dados removidos da aplicação. A exclusão no Clerk está pendente; repita esta operação para concluir.")
+	}
+	if _, err = s.DB.Exec(ctx, `update catalog.privacy_requests set status='completed',completed_at=now()where id=$1`, r.PathValue("request")); err != nil {
+		return err
+	}
+	respond(w, 200, map[string]string{"status": "completed"})
 	return nil
 }

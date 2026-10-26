@@ -66,6 +66,8 @@ beforeEach(() => {
         book = { ...JSON.parse(options.body), version: 2 };
         data = book;
       } else if (/\/books(?:\?|$)/.test(url)) data = [book];
+      else if (url.endsWith("/categories") || url.endsWith("/relations"))
+        data = [];
       else if (url.endsWith("/comments"))
         data = [
           {

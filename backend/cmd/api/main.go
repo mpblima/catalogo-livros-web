@@ -50,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer pool.Close()
-	app := server.Server{DB: pool, Auth: server.ClerkAuth(origins), Config: server.Config{BootstrapAdminEmail: strings.ToLower(strings.TrimSpace(os.Getenv("BOOTSTRAP_ADMIN_EMAIL"))), Origins: origins, AutoActivate: os.Getenv("AUTO_ACTIVATE_ACCOUNTS") == "true", FrontendURL: os.Getenv("FRONTEND_URL")}}
+	app := server.Server{DB: pool, LookupIdentity: server.ClerkIdentity, DeleteIdentity: server.DeleteClerkIdentity, Auth: server.ClerkAuth(origins), Config: server.Config{BootstrapAdminEmail: strings.ToLower(strings.TrimSpace(os.Getenv("BOOTSTRAP_ADMIN_EMAIL"))), Origins: origins, AutoActivate: os.Getenv("AUTO_ACTIVATE_ACCOUNTS") == "true", FrontendURL: os.Getenv("FRONTEND_URL")}}
 	if os.Getenv("SENDER_API_KEY") != "" && os.Getenv("SENDER_FROM_EMAIL") != "" {
 		app.Mailer = server.SenderMailer{APIKey: os.Getenv("SENDER_API_KEY"), FromEmail: os.Getenv("SENDER_FROM_EMAIL"), FromName: "Catálogo de Livros"}
 		go func() {

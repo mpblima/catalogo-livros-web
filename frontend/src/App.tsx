@@ -1,3 +1,10 @@
+import { PrivacyNotice } from "./PrivacyNotice";
+import {
+  CategoryTree,
+  CategoryManager,
+  RelationManager,
+} from "./CatalogStructure";
+import { groupBooks, type Relation } from "./structure";
 import { BookEditor } from "./BookEditor";
 import { Welcome } from "./Welcome";
 import type { Book } from "./book";
@@ -55,6 +62,11 @@ export default function App() {
   const [shelf, setShelf] = useState("all");
   const [kind, setKind] = useState("physical");
   const [category, setCategory] = useState("");
+  const [categoryPaths, setCategoryPaths] = useState<string[]>([]);
+  const [relations, setRelations] = useState<Relation[]>([]);
+  const [versions, setVersions] = useState<Record<string, string>>({});
+  const [categoryManager, setCategoryManager] = useState(false);
+  const [relationBook, setRelationBook] = useState<Book | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -161,18 +173,29 @@ export default function App() {
     async (id: string) => {
       if (writing.current) return;
       const epoch = readEpoch.current;
-      const result = await api<Book[]>(`/catalogs/${id}/books?kind=${kind}`);
+      const [result, paths, links] = await Promise.all([
+        api<Book[]>(`/catalogs/${id}/books?kind=${kind}`),
+        api<string[]>(`/catalogs/${id}/categories`),
+        api<Relation[]>(`/catalogs/${id}/relations`),
+      ]);
       if (
         active.current === id &&
         activeKind.current === kind &&
         epoch === readEpoch.current
-      )
+      ) {
         setBooks(result);
+        setCategoryPaths(paths);
+        setRelations(links);
+      }
     },
     [api, kind],
   );
   useEffect(() => {
     setBooks([]);
+    setCategoryPaths([]);
+    setRelations([]);
+    setCategoryManager(false);
+    setRelationBook(null);
     setSelected(null);
     setEditing(null);
     setPanel(null);
@@ -206,7 +229,8 @@ export default function App() {
     };
   }, [catalog, reload]);
   useEffect(() => {
-    if (!editing && !selected && !panel) return;
+    if (!editing && !selected && !panel && !categoryManager && !relationBook)
+      return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     const focusable = () =>
@@ -227,6 +251,8 @@ export default function App() {
         setEditing(null);
         setSelected(null);
         setPanel(null);
+        setCategoryManager(false);
+        setRelationBook(null);
       }
       if (event.key === "Tab") {
         const items = focusable();
@@ -246,7 +272,13 @@ export default function App() {
       document.removeEventListener("keydown", onKey);
       previous?.focus();
     };
-  }, [Boolean(editing), Boolean(selected), panel]);
+  }, [
+    Boolean(editing),
+    Boolean(selected),
+    panel,
+    categoryManager,
+    Boolean(relationBook),
+  ]);
   const base = `/catalogs/${catalog}`;
   const current = catalogs.find((c) => c.id === catalog);
   const filtered = books.filter(
@@ -254,7 +286,9 @@ export default function App() {
       (shelf !== "favorites" || b.favorite) &&
       (shelf !== "reading" || b.reading) &&
       (!kind || b.kind === kind) &&
-      (!category || b.category === category) &&
+      (!category ||
+        b.category === category ||
+        b.category.startsWith(category + "/")) &&
       norm(query)
         .split(/\s+/)
         .filter(Boolean)
@@ -293,6 +327,8 @@ export default function App() {
         ),
       );
       setEditing(null);
+      setCategoryPaths(await api<string[]>(`${base}/categories`));
+      setRelations(await api<Relation[]>(`${base}/relations`));
     });
   };
   const openPanel = (value: "members" | "admin") =>
@@ -414,6 +450,29 @@ export default function App() {
           >
             Solicitar exclusão de dados
           </button>
+          <CategoryTree
+            paths={categoryPaths.filter(
+              (p) =>
+                !kind ||
+                (kind === "physical"
+                  ? p.startsWith("livros_fisicos/") ||
+                    books.some((b) => b.category === p)
+                  : !p.startsWith("livros_fisicos/")),
+            )}
+            selected={category}
+            onSelect={(p) => {
+              setCategory(p);
+              setQuery("");
+              setShelf("all");
+            }}
+          />
+          <button
+            className="category-management"
+            onClick={() => setCategoryManager(true)}
+          >
+            Gerenciar categorias
+          </button>
+          <PrivacyNotice />
           <div className="aside-note">
             Um catálogo para organizar.
             <br />
@@ -522,71 +581,107 @@ export default function App() {
                   : `${filtered.length} livros no catálogo`}
               </p>
               <section className="books">
-                {filtered.map((b) => (
-                  <article key={b.id} className="book">
-                    <div className="cover">
-                      {b.cover_url ? (
-                        <img
-                          src={b.cover_url}
-                          alt={`Capa de ${b.title}`}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <span className="cover-title" aria-hidden="true">
-                          {b.title}
-                          <small>{String(b.metadata.author || "")}</small>
-                        </span>
-                      )}
-                    </div>
-                    <div className="book-info">
-                      <p className="eyebrow">
-                        {b.kind === "physical"
-                          ? "FÍSICO"
-                          : b.format || "DIGITAL"}
-                        {b.category && ` · ${b.category}`}
-                      </p>
-                      <h2>{b.title}</h2>
-                      <p>
-                        {String(b.metadata.author || "Autor não informado")}
-                      </p>
-                      {!!b.metadata.publisher && (
-                        <small>{String(b.metadata.publisher)}</small>
-                      )}
-                      {b.kind === "digital" && (
-                        <p className="file-path" title={b.path}>
-                          {b.path || "Caminho local não informado"}
-                        </p>
-                      )}
-                      <div className="book-actions">
-                        <button
-                          disabled={busy}
-                          aria-pressed={b.favorite}
-                          onClick={() => toggle(b, "favorite")}
-                        >
-                          {b.favorite ? "★ Favorito" : "☆ Favoritar"}
-                        </button>
-                        <button
-                          disabled={busy}
-                          aria-pressed={b.reading}
-                          onClick={() => toggle(b, "reading")}
-                        >
-                          {b.reading ? "✓ Estou lendo" : "Marcar leitura"}
-                        </button>
-                        <button disabled={busy} onClick={() => openNotes(b)}>
-                          Anotações
-                        </button>
-                        <button
-                          onClick={() =>
-                            setEditing({ ...b, metadata: { ...b.metadata } })
-                          }
-                        >
-                          Editar
-                        </button>
+                {groupBooks(filtered, relations).map((group) => {
+                  const b =
+                    group.books.find(
+                      (item) => item.id === versions[group.id],
+                    ) || group.books[0];
+                  return (
+                    <article key={b.id} className="book">
+                      <div className="cover">
+                        {b.cover_url ? (
+                          <img
+                            src={b.cover_url}
+                            alt={`Capa de ${b.title}`}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span className="cover-title" aria-hidden="true">
+                            {b.title}
+                            <small>{String(b.metadata.author || "")}</small>
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  </article>
-                ))}
+                      <div className="book-info">
+                        <p className="eyebrow">
+                          {b.kind === "physical"
+                            ? "FÍSICO"
+                            : b.format || "DIGITAL"}
+                          {b.category && ` · ${b.category}`}
+                        </p>
+                        <h2>{b.title}</h2>
+                        <p>
+                          {String(b.metadata.author || "Autor não informado")}
+                        </p>
+                        {!!b.metadata.publisher && (
+                          <small>{String(b.metadata.publisher)}</small>
+                        )}
+                        {b.kind === "digital" && (
+                          <p className="file-path" title={b.path}>
+                            {b.path || "Caminho local não informado"}
+                          </p>
+                        )}
+                        {group.books.length > 1 && (
+                          <label className="book-versions">
+                            {group.books.length} versões / arquivos
+                            <select
+                              aria-label={"Versões de " + b.title}
+                              value={b.id}
+                              onChange={(e) =>
+                                setVersions({
+                                  ...versions,
+                                  [group.id]: e.target.value,
+                                })
+                              }
+                            >
+                              {group.books.map((item) => (
+                                <option value={item.id} key={item.id}>
+                                  {item.format} ·{" "}
+                                  {group.samples.has(item.id)
+                                    ? "Amostra · "
+                                    : ""}
+                                  {item.filename || item.title}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        <div className="book-actions">
+                          <button
+                            disabled={busy}
+                            aria-pressed={b.favorite}
+                            onClick={() => toggle(b, "favorite")}
+                          >
+                            {b.favorite ? "★ Favorito" : "☆ Favoritar"}
+                          </button>
+                          <button
+                            disabled={busy}
+                            aria-pressed={b.reading}
+                            onClick={() => toggle(b, "reading")}
+                          >
+                            {b.reading ? "✓ Estou lendo" : "Marcar leitura"}
+                          </button>
+                          <button disabled={busy} onClick={() => openNotes(b)}>
+                            Anotações
+                          </button>
+                          {b.kind === "digital" && (
+                            <button onClick={() => setRelationBook(b)}>
+                              Versões e amostras
+                            </button>
+                          )}
+                          <button
+                            onClick={() =>
+                              setEditing({ ...b, metadata: { ...b.metadata } })
+                            }
+                          >
+                            Editar
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </section>
               {!loading && !filtered.length && (
                 <section className="empty">
@@ -606,6 +701,28 @@ export default function App() {
           )}
         </main>
       </div>
+      {categoryManager && (
+        <CategoryManager
+          paths={categoryPaths}
+          onClose={() => setCategoryManager(false)}
+          change={async (method, body) => {
+            await api(`${base}/categories`, method, body);
+            await reload(catalog);
+          }}
+        />
+      )}
+      {relationBook && (
+        <RelationManager
+          book={relationBook}
+          books={books}
+          relations={relations}
+          onClose={() => setRelationBook(null)}
+          change={async (method, body) => {
+            await api(`${base}/relations`, method, body);
+            await reload(catalog);
+          }}
+        />
+      )}
       {editing && (
         <BookEditor
           key={editing.id || editing.kind}
@@ -719,7 +836,7 @@ export default function App() {
             </h2>
             <p>
               {panel === "members"
-                ? "Adicione o e-mail usado pela pessoa no Google. Ela receberá um convite por e-mail para acessar os livros e as anotações deste catálogo."
+                ? "Adicione o e-mail usado pela pessoa no cadastro. Ela receberá um convite por e-mail para acessar os livros e as anotações deste catálogo."
                 : "Contas universais têm uso ilimitado. Cada catálogo permanece privado."}
             </p>
             <form
@@ -835,10 +952,44 @@ export default function App() {
             {panel === "admin" && (
               <section>
                 <h3>Solicitações de privacidade</h3>
+                {error && (
+                  <p className="error" role="alert">
+                    {error}
+                  </p>
+                )}
                 {privacy.length ? (
                   privacy.map((p) => (
                     <p key={p.id}>
                       {p.email} · {p.status}
+                      {p.status !== "completed" && (
+                        <button
+                          className="danger"
+                          disabled={busy}
+                          onClick={() => {
+                            const confirmation = window.prompt(
+                              "Esta operação remove os catálogos próprios, revoga dispositivos e exclui a conta " +
+                                p.email +
+                                ". O histórico em catálogos alheios ficará com a identidade removida. Digite EXCLUIR para confirmar.",
+                            );
+                            if (confirmation === "EXCLUIR")
+                              act(async () => {
+                                await api(
+                                  `/admin/privacy/${p.id}/complete`,
+                                  "POST",
+                                  { confirmation },
+                                );
+                                setPrivacy(
+                                  await api<typeof privacy>("/admin/privacy"),
+                                );
+                                setGrants(await api<Grant[]>("/admin/access"));
+                              });
+                          }}
+                        >
+                          {p.status === "provider_pending"
+                            ? "Concluir exclusão no Clerk"
+                            : "Concluir exclusão"}
+                        </button>
+                      )}
                       <br />
                       <small>
                         {new Date(p.created_at).toLocaleString("pt-BR")}

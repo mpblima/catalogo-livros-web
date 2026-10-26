@@ -37,3 +37,7 @@ Thumbs.db
 /backend/api
 /backend/catalogo-api
 /test-results/
+
+# Operational script caches
+__pycache__/
+*.pyc

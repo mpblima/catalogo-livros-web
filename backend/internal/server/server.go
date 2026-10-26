@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"os"
 	"strings"
 	"time"
 )
@@ -22,11 +23,13 @@ type Config struct {
 	FrontendURL         string
 }
 type Server struct {
-	DB      *pgxpool.Pool
-	Auth    Authenticator
-	Config  Config
-	Mailer  Mailer
-	limiter *rateLimiter
+	DB             *pgxpool.Pool
+	LookupIdentity func(context.Context, string) (Identity, error)
+	DeleteIdentity func(context.Context, string) error
+	Auth           Authenticator
+	Config         Config
+	Mailer         Mailer
+	limiter        *rateLimiter
 }
 type account struct {
 	Identity
@@ -84,7 +87,12 @@ func (s *Server) Handler() http.Handler {
 			respond(w, 503, map[string]string{"status": "unavailable"})
 			return
 		}
-		respond(w, 200, map[string]string{"status": "ok"})
+		var ready bool
+		if err := s.DB.QueryRow(ctx, `select to_regclass('catalog.erased_accounts') is not null`).Scan(&ready); err != nil || !ready {
+			respond(w, 503, map[string]string{"status": "migration_required"})
+			return
+		}
+		respond(w, 200, map[string]string{"status": "ok", "revision": os.Getenv("RENDER_GIT_COMMIT")})
 	})
 	api := http.NewServeMux()
 	api.HandleFunc("GET /api/me", route(s.me))
@@ -92,7 +100,15 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("GET /api/privacy/export", route(s.export))
 	api.HandleFunc("POST /api/privacy/erasure", route(s.requestErasure))
 	api.HandleFunc("GET /api/admin/privacy", route(s.privacyRequests))
+	api.HandleFunc("POST /api/admin/privacy/{request}/complete", route(s.completeErasure))
 	api.HandleFunc("GET /api/catalogs", route(s.catalogs))
+	api.HandleFunc("GET /api/catalogs/{catalog}/categories", route(s.categories))
+	api.HandleFunc("POST /api/catalogs/{catalog}/categories", route(s.changeCategory))
+	api.HandleFunc("PUT /api/catalogs/{catalog}/categories", route(s.changeCategory))
+	api.HandleFunc("DELETE /api/catalogs/{catalog}/categories", route(s.changeCategory))
+	api.HandleFunc("GET /api/catalogs/{catalog}/relations", route(s.relations))
+	api.HandleFunc("POST /api/catalogs/{catalog}/relations", route(s.changeRelation))
+	api.HandleFunc("DELETE /api/catalogs/{catalog}/relations", route(s.changeRelation))
 	api.HandleFunc("GET /api/catalogs/{catalog}/books", route(s.books))
 	api.HandleFunc("POST /api/catalogs/{catalog}/books", route(s.createBook))
 	api.HandleFunc("PUT /api/catalogs/{catalog}/books/{book}", route(s.updateBook))
@@ -146,6 +162,13 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		if !s.limiter.allow(identity.ID) {
 			w.Header().Set("Retry-After", "60")
 			return problem(429, "Muitas requisições. Tente novamente em um minuto.")
+		}
+		var erased bool
+		if err = s.DB.QueryRow(r.Context(), `select exists(select 1 from catalog.erased_accounts where user_id=$1)`, identity.ID).Scan(&erased); err != nil {
+			return err
+		}
+		if erased {
+			return problem(403, "Esta conta foi excluída do serviço.")
 		}
 		a := account{Identity: identity}
 		_, err = s.DB.Exec(r.Context(), `insert into catalog.users(id,email,name) values($1,$2,$3) on conflict(id) do update set email=excluded.email,name=excluded.name`, a.ID, a.Email, a.Name)

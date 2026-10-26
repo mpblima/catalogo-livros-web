@@ -1,0 +1,60 @@
+.category-tree {
+  border-top: 1px solid var(--line);
+  margin-top: 25px;
+  padding-top: 20px;
+  font-size: 12px;
+}
+.category-tree h3 {
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+.category-tree ul {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 5px 0;
+}
+.category-tree > ul {
+  padding-left: 0;
+}
+.category-tree button {
+  border: 0;
+  background: transparent;
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+  color: #284b39;
+  overflow-wrap: anywhere;
+  text-transform: capitalize;
+}
+.category-tree button[aria-pressed="true"] {
+  background: #e3ebdb;
+  font-weight: 700;
+}
+.category-tree summary {
+  display: flex;
+  align-items: center;
+  list-style: none;
+}
+.category-tree summary::before {
+  content: "›";
+  padding-right: 3px;
+}
+.category-tree details[open] > summary::before {
+  content: "⌄";
+}
+.category-tree summary button {
+  width: auto;
+  flex: 1;
+}
+.category-management {
+  margin-top: 10px;
+  font-size: 11px;
+}
+.book-versions {
+  margin: 12px 0;
+  font-size: 12px;
+}
+.book-versions select {
+  font-size: 12px;
+  margin-top: 6px;
+}

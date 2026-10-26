@@ -1,3 +1,4 @@
+import { PrivacyNotice } from "./PrivacyNotice";
 import { SignInButton, SignUpButton } from "@clerk/react";
 import "./welcome.css";
 
@@ -70,6 +71,7 @@ export function Welcome() {
           </div>
         </section>
         <div className="welcome-foot">
+          <PrivacyNotice />
           <span>Uma biblioteca com a sua história.</span>
           <span>Seus arquivos digitais continuam no seu computador.</span>
         </div>
