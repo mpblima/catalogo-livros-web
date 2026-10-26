@@ -20,7 +20,7 @@ type Message struct {
 type Mailer interface {
 	Send(context.Context, Message) error
 }
-type SenderMailer struct {
+type ResendMailer struct {
 	APIKey    string
 	FromEmail string
 	FromName  string
@@ -28,12 +28,16 @@ type SenderMailer struct {
 	Endpoint  string
 }
 
-func (m SenderMailer) Send(ctx context.Context, message Message) error {
+func (m ResendMailer) Send(ctx context.Context, message Message) error {
 	endpoint := m.Endpoint
 	if endpoint == "" {
-		endpoint = "https://api.sender.net/v2/message/send"
+		endpoint = "https://api.resend.com/emails"
 	}
-	body, err := json.Marshal(map[string]any{"from": map[string]string{"email": m.FromEmail, "name": m.FromName}, "to": map[string]string{"email": message.To}, "subject": message.Subject, "html": message.HTML})
+	from := m.FromEmail
+	if m.FromName != "" {
+		from = m.FromName + " <" + m.FromEmail + ">"
+	}
+	body, err := json.Marshal(map[string]any{"from": from, "to": []string{message.To}, "subject": message.Subject, "html": message.HTML})
 	if err != nil {
 		return err
 	}
@@ -50,12 +54,12 @@ func (m SenderMailer) Send(ctx context.Context, message Message) error {
 	}
 	response, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("sender unavailable")
+		return fmt.Errorf("resend unavailable")
 	}
 	defer response.Body.Close()
 	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 8192))
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("sender returned HTTP %d", response.StatusCode)
+		return fmt.Errorf("resend returned HTTP %d", response.StatusCode)
 	}
 	return nil
 }

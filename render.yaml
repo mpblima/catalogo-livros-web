@@ -18,7 +18,7 @@ services:
         value: https://biblioteca.praesens.tech
       - key: ALLOWED_ORIGINS
         value: https://biblioteca.praesens.tech
-      - key: SENDER_API_KEY
+      - key: RESEND_API_KEY
         sync: false
-      - key: SENDER_FROM_EMAIL
+      - key: RESEND_FROM_EMAIL
         value: convites@praesens.tech

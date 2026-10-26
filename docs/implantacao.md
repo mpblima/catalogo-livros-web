@@ -34,15 +34,15 @@ O esquema `catalog` é privado. Não adicioná-lo aos schemas expostos pela API 
 
 Saída: migrações aplicadas e conexão TLS verificada pelo backend.
 
-## 4. Sender — convites
+## 4. Resend — convites
 
-Criar conta Free e cadastrar o domínio remetente. Publicar SPF/DKIM/DMARC exatamente conforme o Sender indicar. Preservar os registros existentes: não criar dois SPF concorrentes para o mesmo hostname.
+Criar conta Free, adicionar `praesens.tech` e publicar os registros DNS exatamente conforme o Resend indicar. Preservar registros existentes: não criar dois SPF concorrentes para o mesmo hostname. O domínio precisa estar verificado antes do envio com o remetente próprio.
 
-Criar token de API transacional. Configurar no Render:
+Criar uma API key com permissão de envio. Configurar no Render:
 
 ```text
-SENDER_API_KEY=<token privado>
-SENDER_FROM_EMAIL=convites@praesens.tech
+RESEND_API_KEY=<token privado>
+RESEND_FROM_EMAIL=convites@praesens.tech
 ```
 
 O envio usa HTTPS, não SMTP, porque o Render Free bloqueia as portas SMTP usuais. O domínio verificado permite envio; isso não cria uma caixa postal para receber respostas. Confirmar um contato de suporte válido antes da publicação pública.
@@ -60,8 +60,8 @@ BOOTSTRAP_ADMIN_EMAIL=<e-mail confirmado do administrador inicial>
 AUTO_ACTIVATE_ACCOUNTS=true
 FRONTEND_URL=https://biblioteca.praesens.tech
 ALLOWED_ORIGINS=https://biblioteca.praesens.tech
-SENDER_API_KEY=<token privado>
-SENDER_FROM_EMAIL=convites@praesens.tech
+RESEND_API_KEY=<token privado>
+RESEND_FROM_EMAIL=convites@praesens.tech
 ```
 
 Durante o desenvolvimento, pode incluir `http://localhost:5173` em `ALLOWED_ORIGINS`, separado por vírgula. Remover na implantação definitiva. Não usar `*`. A URL padrão `onrender.com` funciona para a API; um subdomínio próprio da API não é necessário.
@@ -105,7 +105,7 @@ Não existem limites artificiais de quantidade de livros nesta primeira versão.
 - Render Free entra em repouso após inatividade e pode demorar ao primeiro acesso. Banco e fila ficam no Supabase, não em disco do Render. [Documentação](https://render.com/docs/free)
 - Supabase Free tem cotas de armazenamento/tráfego e pode pausar projetos de baixa atividade. Não enviar PDF/EPUB para reduzir armazenamento e exposição. [Cotas](https://supabase.com/docs/guides/platform/billing-on-supabase) e [pausa](https://supabase.com/docs/guides/platform/free-project-pausing).
 - Clerk Development não serve como ambiente definitivo e tem limites próprios. Produção requer domínio controlado. [Ambientes](https://clerk.com/docs/guides/development/managing-environments) e [produção](https://clerk.com/docs/guides/development/deployment/production).
-- Sender Free inclui envio transacional, sujeito às cotas vigentes. [Plano gratuito](https://www.sender.net/pricing/free-plan/).
+- Resend exige pelo menos um domínio próprio verificado antes do envio. Consultar as cotas atuais do plano no painel. [Domínios verificados](https://resend.com/docs/dashboard/domains/introduction) e [preços](https://resend.com/pricing).
 - Vercel Hobby destina-se a uso pessoal não comercial. Antes de monetizar ou operar comercialmente, revisar o plano ou escolher hospedagem compatível. [Condições do Hobby](https://vercel.com/docs/plans/hobby).
 
 Não contratar complementos pagos automaticamente. Exportações/backup, restauração e retenção precisam de validação operacional antes de produção pública.

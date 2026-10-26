@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestSenderAPI(t *testing.T) {
+func TestResendAPI(t *testing.T) {
 	count := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		count++
@@ -22,6 +22,13 @@ func TestSenderAPI(t *testing.T) {
 		if body["subject"] != "Convite" {
 			t.Error("wrong subject")
 		}
+		if body["from"] != "Biblioteca <convites@example.com>" {
+			t.Errorf("wrong sender: %v", body["from"])
+		}
+		to, ok := body["to"].([]any)
+		if !ok || len(to) != 1 || to[0] != "guest@example.com" {
+			t.Errorf("wrong recipient: %v", body["to"])
+		}
 		if count == 1 {
 			w.WriteHeader(429)
 		} else {
@@ -29,7 +36,7 @@ func TestSenderAPI(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	m := SenderMailer{APIKey: "secret-test", FromEmail: "convites@example.com", FromName: "Biblioteca", Endpoint: srv.URL}
+	m := ResendMailer{APIKey: "secret-test", FromEmail: "convites@example.com", FromName: "Biblioteca", Endpoint: srv.URL}
 	message := Message{To: "guest@example.com", Subject: "Convite", HTML: "<p>Convite</p>"}
 	if err := m.Send(context.Background(), message); err == nil {
 		t.Fatal("provider failure ignored")

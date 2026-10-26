@@ -52,7 +52,7 @@ Requisitos: Node 22.12+ e Go conforme `backend/go.mod`, PostgreSQL 17 e uma apli
 4. Exporte as variáveis do backend no terminal e execute `go run ./cmd/api` dentro de `backend/`. A aplicação não carrega arquivos `.env` automaticamente.
 5. Dentro de `frontend/`, execute `npm ci` e `npm run dev`.
 
-Sem `SENDER_API_KEY` e `SENDER_FROM_EMAIL`, o catálogo individual funciona, mas a inclusão de convidados retorna uma mensagem de configuração pendente.
+Sem `RESEND_API_KEY` e `RESEND_FROM_EMAIL`, o catálogo individual funciona, mas a inclusão de convidados retorna uma mensagem de configuração pendente.
 
 ## Validação
 
