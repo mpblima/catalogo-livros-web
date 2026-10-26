@@ -118,6 +118,24 @@ describe("cadastro equivalente ao desktop", () => {
     await userEvent.click(screen.getByRole("button", { name: "Salvar livro" }));
     expect(save.mock.calls[0][0].category).toBe("Minha categoria");
   });
+  it("sugere categoria digital pela raiz digital", () => {
+    render(
+      <Form
+        initial={{
+          ...empty,
+          kind: "digital",
+          format: "PDF",
+          metadata: { subject: "Java" },
+        }}
+        lookup={vi.fn()}
+        onSave={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText(/Categoria/)).toHaveProperty(
+      "value",
+      "livros_digitais/programacao/java/fundamentos_e_referencia",
+    );
+  });
   it("ignora resposta atrasada após trocar o código", async () => {
     let finish!: (b: Book) => void;
     const lookup = vi.fn(

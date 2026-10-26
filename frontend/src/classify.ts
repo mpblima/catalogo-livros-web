@@ -28,7 +28,12 @@ const snake = (s: string) =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || "sem_nome";
 // Rules and ordering mirror the desktop CategoryClassifier.
-export function classify(title: string, subject: string) {
+export function classify(
+  title: string,
+  subject: string,
+  kind: "physical" | "digital" = "physical",
+) {
+  const root = kind === "digital" ? "livros_digitais" : "livros_fisicos";
   const actual = fold(title);
   let category = "";
   const extra = [
@@ -49,11 +54,11 @@ export function classify(title: string, subject: string) {
   ];
   for (const [pattern, destination] of extra)
     if (new RegExp(pattern).test(actual))
-      return `livros_fisicos/${destination}`;
+      return `${root}/${destination}`;
   if (actual.includes("cassandra"))
-    return "livros_fisicos/dados_e_bancos_de_dados/no_sql/cassandra";
+    return `${root}/dados_e_bancos_de_dados/no_sql/cassandra`;
   if (actual.includes("text adventure") && actual.includes("python"))
-    return "livros_fisicos/desenvolvimento_de_jogos/python";
+    return `${root}/desenvolvimento_de_jogos/python`;
   for (const text of [title, subject.replace(/_/g, " ")]) {
     const rule = rules.find(([pattern]) =>
       new RegExp(pattern).test(fold(text)),
@@ -122,7 +127,8 @@ export function classify(title: string, subject: string) {
         "Fundamentos e referência");
   }
   return (
-    "livros_fisicos/" +
+    root +
+    "/" +
     category
       .split("/")
       .map((s) => aliases[s] || snake(s))

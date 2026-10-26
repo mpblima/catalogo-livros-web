@@ -111,12 +111,12 @@ export function BookEditor({
       book.summary,
   );
   const suggestedCategory =
-    book.kind === "physical" &&
     !customCategory.current &&
     hasClassificationInput
       ? classify(
           `${book.title} ${book.metadata.subtitle || ""}`,
           `${book.metadata.subject || ""} ${book.metadata.keywords || ""} ${book.summary}`,
+          book.kind,
         )
       : book.category;
   useEffect(
@@ -149,10 +149,11 @@ export function BookEditor({
         summary: found.summary,
         cover_url: found.cover_url,
         category:
-          current.kind === "physical" && !customCategory.current
+          !customCategory.current
             ? classify(
                 `${found.title} ${found.metadata.subtitle || ""}`,
                 `${found.metadata.subject || ""} ${found.metadata.keywords || ""} ${found.summary}`,
+                current.kind,
               )
             : current.category,
         metadata: { ...current.metadata, ...found.metadata },
@@ -209,10 +210,11 @@ export function BookEditor({
           "ISBN inválido. Corrija o código ou deixe o ISBN em branco para cadastro manual.",
         );
       const category =
-        book.kind === "physical" && !customCategory.current
+        !customCategory.current
           ? classify(
               `${book.title} ${book.metadata.subtitle || ""}`,
               `${book.metadata.subject || ""} ${book.metadata.keywords || ""} ${book.summary}`,
+              book.kind,
             )
           : book.category;
       const known = Object.fromEntries(
@@ -380,9 +382,7 @@ export function BookEditor({
                   ))}
                   <label className="wide">
                     Categoria
-                    {book.kind === "physical" && !customCategory.current
-                      ? " · automática"
-                      : ""}
+                    {!customCategory.current ? " · automática" : ""}
                     <input
                       value={suggestedCategory}
                       onChange={(e) => {
