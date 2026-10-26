@@ -65,7 +65,7 @@ beforeEach(() => {
         writes.push(JSON.parse(options.body));
         book = { ...JSON.parse(options.body), version: 2 };
         data = book;
-      } else if (url.endsWith("/books")) data = [book];
+      } else if (/\/books(?:\?|$)/.test(url)) data = [book];
       else if (url.endsWith("/comments"))
         data = [
           {
@@ -98,6 +98,11 @@ describe("catálogo web", () => {
   it("remove favorito do filtro assim que a alteração é salva", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await screen.findByRole("button", { name: "+ Livro digital" });
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Tipo de livro" }),
+      "digital",
+    );
     await screen.findByRole("heading", { name: "Programação Java" });
     await user.click(screen.getByRole("button", { name: /Favoritos/ }));
     await user.click(screen.getByRole("button", { name: "★ Favorito" }));
@@ -112,6 +117,11 @@ describe("catálogo web", () => {
   it("remove livro desmarcado do filtro de leitura", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await screen.findByRole("button", { name: "+ Livro digital" });
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Tipo de livro" }),
+      "digital",
+    );
     await screen.findByRole("heading", { name: "Programação Java" });
     await user.click(screen.getByRole("button", { name: /Estou lendo1/ }));
     await user.click(screen.getByRole("button", { name: "✓ Estou lendo" }));
@@ -124,6 +134,11 @@ describe("catálogo web", () => {
   });
   it("mostra caminho local sem link de leitura", async () => {
     render(<App />);
+    await screen.findByRole("button", { name: "+ Livro digital" });
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Tipo de livro" }),
+      "digital",
+    );
     await screen.findByRole("heading", { name: "Programação Java" });
     expect(screen.getByText("/Livros/java.pdf")).toBeTruthy();
     expect(screen.queryByRole("link", { name: /Abrir/ })).toBeNull();
@@ -131,6 +146,11 @@ describe("catálogo web", () => {
   it("identifica o autor da anotação compartilhada", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await screen.findByRole("button", { name: "+ Livro digital" });
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Tipo de livro" }),
+      "digital",
+    );
     await screen.findByRole("heading", { name: "Programação Java" });
     await user.click(screen.getByRole("button", { name: "Anotações" }));
     const dialog = await screen.findByRole("dialog");

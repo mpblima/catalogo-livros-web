@@ -1,0 +1,478 @@
+[
+  [
+    "das-pgmei",
+    "Documentos e Manuais/Documentos pessoais"
+  ],
+  [
+    "ukulele",
+    "Música/Ukulele"
+  ],
+  [
+    "viola.caipira",
+    "Música/Viola caipira"
+  ],
+  [
+    "teoriamusical|floral.dance",
+    "Música/Teoria musical e partituras"
+  ],
+  [
+    "paulo avelar",
+    "Música/Violão"
+  ],
+  [
+    "storytelling",
+    "Comunicação e Design/Storytelling"
+  ],
+  [
+    "tipografia|photoshop|lightroom",
+    "Comunicação e Design/Design gráfico e fotografia"
+  ],
+  [
+    "ceticismo|jejum|oracao|pais.que.oram|23-minutos-no-inferno",
+    "Religião e Espiritualidade/Cristianismo"
+  ],
+  [
+    "1964|comunismo|democracia|paulo freire",
+    "Conhecimentos Gerais/História e política"
+  ],
+  [
+    "1984|revolucao dos bichos|textos crueis",
+    "Literatura/Ficção e poesia"
+  ],
+  [
+    "mimados|dalrymple|guia.?contra.?mentiras",
+    "Conhecimentos Gerais/Sociedade e pensamento"
+  ],
+  [
+    "filho teu nao foge",
+    "Conhecimentos Gerais/Esportes"
+  ],
+  [
+    "linguagens do amor|arte de se fazer respeitar",
+    "Desenvolvimento Pessoal/Relacionamentos"
+  ],
+  [
+    "7 habitos|smart.notes|habito.de.ler|evernote|faca tempo|mantra da produtividade",
+    "Carreira e Produtividade/Organização pessoal"
+  ],
+  [
+    "principia|filosofia.matematica|resumo matematica",
+    "Matemática e Estatística/Fundamentos"
+  ],
+  [
+    "statistics|statistics|estatistica",
+    "Matemática e Estatística/Estatística"
+  ],
+  [
+    "deep.learning|neural.network|pytorch",
+    "Inteligência Artificial/Deep Learning"
+  ],
+  [
+    "natural.language|language.processing|text.analytics|spacy|nli_tutorial",
+    "Inteligência Artificial/Processamento de linguagem natural"
+  ],
+  [
+    "opencv|computer.vision|computervision",
+    "Inteligência Artificial/Visão computacional"
+  ],
+  [
+    "chatbot|speech.recognition",
+    "Inteligência Artificial/Assistentes e voz"
+  ],
+  [
+    "machine.learning|machine-learning|pattern.recognition|bayesian|self-supervised|\\bml vip|\\bml-|\\bml\\b|\\bmlr\\b|ng-mly|inteligencia.computacional",
+    "Inteligência Artificial/Machine Learning"
+  ],
+  [
+    "artificial.intelligence|inteligencia.artificial|ai4all|ai questions",
+    "Inteligência Artificial/Fundamentos"
+  ],
+  [
+    "data.wrangling|data.cleaning|data.analysis|data.analytics|pythonfordatascience|data.science|data.science|pandas|numpy|data driven|analytics.right",
+    "Dados e Bancos de Dados/Ciência de dados"
+  ],
+  [
+    "data.visual|visualization|ggplot|plotly",
+    "Dados e Bancos de Dados/Visualização de dados"
+  ],
+  [
+    "data.mesh|data-intensive|data.intensive",
+    "Dados e Bancos de Dados/Arquitetura de dados"
+  ],
+  [
+    "big.data|hadoop|hdfs|hive",
+    "Dados e Bancos de Dados/Big Data"
+  ],
+  [
+    "data.mining|data.mening|meningite|olap|oltp|dimensional",
+    "Dados e Bancos de Dados/Mineração de dados"
+  ],
+  [
+    "business.intelligence|ireport",
+    "Dados e Bancos de Dados/Business Intelligence"
+  ],
+  [
+    "mongodb|mongo.db",
+    "Dados e Bancos de Dados/NoSQL/MongoDB"
+  ],
+  [
+    "elasticsearch|elastic.search",
+    "Dados e Bancos de Dados/Busca/Elasticsearch"
+  ],
+  [
+    "redis",
+    "Dados e Bancos de Dados/NoSQL/Redis"
+  ],
+  [
+    "nosql",
+    "Dados e Bancos de Dados/NoSQL/Fundamentos"
+  ],
+  [
+    "postgres",
+    "Dados e Bancos de Dados/SQL/PostgreSQL"
+  ],
+  [
+    "mysql",
+    "Dados e Bancos de Dados/SQL/MySQL"
+  ],
+  [
+    "plsql|oracle",
+    "Dados e Bancos de Dados/SQL/Oracle"
+  ],
+  [
+    "\\bsql\\b|tsql",
+    "Dados e Bancos de Dados/SQL"
+  ],
+  [
+    "hqbird",
+    "Dados e Bancos de Dados/SQL/Firebird"
+  ],
+  [
+    "ethereum|bitcoin|dapps|decentralized",
+    "Blockchain e Criptomoedas/Criptomoedas"
+  ],
+  [
+    "blockchain|web3|r3 corda",
+    "Blockchain e Criptomoedas/Blockchain"
+  ],
+  [
+    "keycloak|oauth|identity|identidade|openam",
+    "Segurança da Informação/Identidade e acesso"
+  ],
+  [
+    "penetration|hacking|black.hat|forensic|secret.agents",
+    "Segurança da Informação/Pentest e forense"
+  ],
+  [
+    "security|seguranca",
+    "Segurança da Informação/Segurança de aplicações"
+  ],
+  [
+    "quarkus",
+    "Programação/Java/Quarkus"
+  ],
+  [
+    "camel|fuse.esb",
+    "Arquitetura e Integração/Apache Camel"
+  ],
+  [
+    "kafka",
+    "Arquitetura e Integração/Mensageria/Kafka"
+  ],
+  [
+    "active.?mq|rabbitmq",
+    "Arquitetura e Integração/Mensageria"
+  ],
+  [
+    "event.driven|event.processing|event.sourcing|cqrs",
+    "Arquitetura e Integração/Arquitetura orientada a eventos"
+  ],
+  [
+    "domain.driven|\\bddd\\b|evans03",
+    "Arquitetura e Integração/DDD"
+  ],
+  [
+    "hexagonal",
+    "Arquitetura e Integração/Arquitetura hexagonal"
+  ],
+  [
+    "micro.frontend",
+    "Desenvolvimento Web/Micro-frontends"
+  ],
+  [
+    "microservice|microsservico",
+    "Arquitetura e Integração/Microsserviços"
+  ],
+  [
+    "\\bsoa\\b|enterprise.integration|mule.in.action",
+    "Arquitetura e Integração/SOA"
+  ],
+  [
+    "graphql",
+    "Arquitetura e Integração/APIs/GraphQL"
+  ],
+  [
+    "\\brest\\b|restful|api.guide",
+    "Arquitetura e Integração/APIs/REST"
+  ],
+  [
+    "istio",
+    "DevOps e Infraestrutura/Service Mesh/Istio"
+  ],
+  [
+    "service.mesh",
+    "DevOps e Infraestrutura/Service Mesh/Fundamentos"
+  ],
+  [
+    "openshift",
+    "DevOps e Infraestrutura/Containers/OpenShift"
+  ],
+  [
+    "kubernetes|\\bhelm\\b",
+    "DevOps e Infraestrutura/Containers/Kubernetes"
+  ],
+  [
+    "docker",
+    "DevOps e Infraestrutura/Containers/Docker"
+  ],
+  [
+    "coreos",
+    "DevOps e Infraestrutura/Containers/CoreOS"
+  ],
+  [
+    "jenkins",
+    "DevOps e Infraestrutura/CI e CD/Jenkins"
+  ],
+  [
+    "continuous|continua|integration.and.delivery",
+    "DevOps e Infraestrutura/CI e CD"
+  ],
+  [
+    "ansible|puppet|chef|vagrant|infrastructure.as.code|cloudforms",
+    "DevOps e Infraestrutura/Infraestrutura como código e automação"
+  ],
+  [
+    "prometheus|grafana|splunk",
+    "DevOps e Infraestrutura/Observabilidade"
+  ],
+  [
+    "git.?hub|\\bgit\\b",
+    "DevOps e Infraestrutura/Git e GitHub"
+  ],
+  [
+    "devops",
+    "DevOps e Infraestrutura/Fundamentos"
+  ],
+  [
+    "openstack",
+    "Cloud/OpenStack"
+  ],
+  [
+    "azure",
+    "Cloud/Azure"
+  ],
+  [
+    "aws|amazon",
+    "Cloud/AWS"
+  ],
+  [
+    "google.cloud|google.app.engine|cloud.platform",
+    "Cloud/GCP"
+  ],
+  [
+    "serverless|knative",
+    "Cloud/Serverless"
+  ],
+  [
+    "linux|red.hat.rh|red-hat-rh|red.hat.enterprise.linux",
+    "Redes e Sistemas/Linux"
+  ],
+  [
+    "windows.server",
+    "Redes e Sistemas/Windows Server"
+  ],
+  [
+    "nginx",
+    "Redes e Sistemas/Servidores Web/Nginx"
+  ],
+  [
+    "drools|brms|rule.design.pattern",
+    "Processos de Negócio/BRMS e Drools"
+  ],
+  [
+    "jbpm|business.process.management",
+    "Processos de Negócio/jBPM e PAM"
+  ],
+  [
+    "spring",
+    "Programação/Java/Spring"
+  ],
+  [
+    "react.native",
+    "Desenvolvimento Mobile/React Native"
+  ],
+  [
+    "flutter",
+    "Desenvolvimento Mobile/Flutter"
+  ],
+  [
+    "ionic",
+    "Desenvolvimento Mobile/Ionic"
+  ],
+  [
+    "android",
+    "Desenvolvimento Mobile/Android"
+  ],
+  [
+    "\\bios\\b|swift|iphone|ipad",
+    "Desenvolvimento Mobile/iOS e Swift"
+  ],
+  [
+    "xamarin|phonegap|cordova|web.mobile|jquery.mobile",
+    "Desenvolvimento Mobile/Multiplataforma"
+  ],
+  [
+    "windows.phone",
+    "Desenvolvimento Mobile/Windows Phone"
+  ],
+  [
+    "jmeter|protractor|test.driven|test-driven|testes.automatizados|\\btdd\\b|working.effectively.with.legacy|refactoring|refatorando",
+    "Engenharia de Software/Testes e refatoração"
+  ],
+  [
+    "scrum|agile|agil|extreme.programming",
+    "Gestão e Negócios/Agilidade e métodos"
+  ],
+  [
+    "\\blean\\b|sprint|inception",
+    "Gestão e Negócios/Lean e Design Sprint"
+  ],
+  [
+    "startup|empreendedor|economia.do.acesso",
+    "Gestão e Negócios/Empreendedorismo"
+  ],
+  [
+    "gestao.de.produtos",
+    "Gestão e Negócios/Gestão de produtos"
+  ],
+  [
+    "management|software.teams|cbap",
+    "Gestão e Negócios/Gestão de equipes e análise de negócios"
+  ],
+  [
+    "soft.skills|programador.apaixonado|fragmentos.de.um.programador|portfolio.guide|voce.*sa",
+    "Carreira e Produtividade/Carreira em tecnologia"
+  ],
+  [
+    "ux.design|design.responsivo|responsive.design",
+    "Comunicação e Design/UX e Web Design"
+  ],
+  [
+    "\\bseo\\b",
+    "Comunicação e Design/Marketing digital e SEO"
+  ],
+  [
+    "arduino|kinect|instrumentation|leap.motion",
+    "Computação/Eletrônica e IoT"
+  ],
+  [
+    "jogos|games|pygame",
+    "Desenvolvimento de Jogos/Fundamentos"
+  ],
+  [
+    "python|lpthw|web.scrapping|web.scraping|byte-of-python|tangowithdjango|django",
+    "Programação/Python"
+  ],
+  [
+    "node|mean|mern",
+    "Desenvolvimento Web/Node.js"
+  ],
+  [
+    "react",
+    "Desenvolvimento Web/React"
+  ],
+  [
+    "angular",
+    "Desenvolvimento Web/Angular"
+  ],
+  [
+    "typescript",
+    "Programação/TypeScript"
+  ],
+  [
+    "javascript|ecmascript|jquery|meteor",
+    "Programação/JavaScript"
+  ],
+  [
+    "java|jpa|jsf|ejb|vraptor|grails|play.framework|maven",
+    "Programação/Java"
+  ],
+  [
+    "asp.?net|\\.net|c#|visual.studio|plataforma.microsoft",
+    "Programação/C# e .NET"
+  ],
+  [
+    "php|laravel|codeigniter|zend",
+    "Programação/PHP"
+  ],
+  [
+    "ruby|rails|rspec|cucumber",
+    "Programação/Ruby"
+  ],
+  [
+    "scala",
+    "Programação/Scala"
+  ],
+  [
+    "\\bgo\\b|golang",
+    "Programação/Go"
+  ],
+  [
+    "ocaml",
+    "Programação/OCaml"
+  ],
+  [
+    "octave|matlab",
+    "Programação/MATLAB e Octave"
+  ],
+  [
+    "programacao.em.c\\b",
+    "Programação/C e C++"
+  ],
+  [
+    "book.of.r|science.in.r|\\bmlr\\b",
+    "Programação/R"
+  ],
+  [
+    "html|css|sass|front.end|frontend",
+    "Desenvolvimento Web/HTML e CSS"
+  ],
+  [
+    "single.page|desconstruindo.a.web|web.development",
+    "Desenvolvimento Web/Fundamentos"
+  ],
+  [
+    "regex|regular.expression|expressoes.regulares",
+    "Programação/Expressões regulares"
+  ],
+  [
+    "vscode|chrome.extensions|markdown",
+    "Ferramentas e Educação/Editores e ferramentas"
+  ],
+  [
+    "clean.code|codigo.limpo|codificador.limpo|pragmatic|pragmatico|code.complete|software.engineering|mestre.programador",
+    "Engenharia de Software/Boas práticas"
+  ],
+  [
+    "design.pattern|padroes.de.projeto|dependency.injection|orientacao.a.objetos|solid",
+    "Arquitetura e Integração/Padrões de projeto"
+  ],
+  [
+    "architecture|arquitetura|architecting|distributed.systems",
+    "Arquitetura e Integração/Arquitetura de software"
+  ],
+  [
+    "cracking.*interview",
+    "Carreira e Produtividade/Entrevistas"
+  ]
+]

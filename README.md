@@ -9,9 +9,10 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 
 - Entrada e criação de conta usando os componentes do Clerk. E-mail verificado exigido pelo backend; senhas ficam no Clerk.
 - Catálogo próprio criado automaticamente na primeira entrada. Acesso gratuito inicialmente liberado a novas contas.
-- Cadastro, edição e exclusão lógica de livros físicos e digitais; metadados, resumo, categoria, localização e URL HTTPS de capa.
+- Cadastro separado de livros físicos e digitais, com os campos bibliográficos do editor desktop, resumo, anotações do exemplar, página atual, localização e metadados extras em JSON.
+- ISBN/código de barras em destaque: consulta automática após digitação/leitura, preenchimento de dados e capa, classificação pelas regras do desktop e revisão manual antes de salvar. Open Library e Google Books são consultados pelo backend; falhas permitem cadastro manual.
 - Busca por palavras, filtros de assunto/subassunto, tipo, favoritos e leitura. Alterações dos marcadores atualizam a lista após confirmação da API.
-- Caminho físico dos arquivos digitais como texto. Nenhum upload ou leitor de PDF/EPUB, nem acompanhamento de páginas na nuvem.
+- Caminho físico dos arquivos digitais como texto. Sem upload ou leitor de PDF/EPUB na nuvem; a página atual pode ser registrada manualmente.
 - Compartilhamento por e-mail verificado com até 50 convidados por catálogo. Contas universais e administradores não têm esse limite. Acesso compartilhado permite consultar, cadastrar, editar e anotar; somente o proprietário gerencia convidados.
 - Convites numa fila persistente, com envio pelo Sender, retentativas e expiração de pendências. A inclusão só fica disponível quando o provedor de e-mail está configurado.
 - Anotações compartilhadas com autor e data atribuídos pelo servidor. Anotações são acrescentadas, não sobrescritas coletivamente.
@@ -22,7 +23,7 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 
 1. Configurar e validar Clerk, Supabase, Render, Vercel, Sender e DNS com as contas do proprietário.
 2. Validar login real, criação de senha, recuperação de acesso e entrega de convites entre duas contas.
-3. Completar recursos do desktop: consulta ISBN/código de barras, classificação, gestão de árvore de categorias, capas automáticas e agrupamento de edições/amostras.
+3. Completar a gestão de árvore de categorias, busca ampliada de capas em livrarias e agrupamento de edições/amostras.
 4. Implementar sincronização bidirecional, associação de conta e botão no desktop, incluindo conflitos e retomada após falhas. A tabela `sync_links` é uma reserva de modelo; não existe endpoint de sincronização implementado.
 5. Completar operação de exclusão/anonimização, retenção, aviso de privacidade, backups e restauração antes de abrir ao público.
 

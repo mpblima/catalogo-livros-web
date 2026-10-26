@@ -88,6 +88,7 @@ func (s *Server) Handler() http.Handler {
 	})
 	api := http.NewServeMux()
 	api.HandleFunc("GET /api/me", route(s.me))
+	api.HandleFunc("GET /api/books/lookup", route(s.lookupBook))
 	api.HandleFunc("GET /api/privacy/export", route(s.export))
 	api.HandleFunc("POST /api/privacy/erasure", route(s.requestErasure))
 	api.HandleFunc("GET /api/admin/privacy", route(s.privacyRequests))

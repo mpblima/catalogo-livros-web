@@ -95,6 +95,18 @@ func TestIntegration(t *testing.T) {
 	}
 	id := catalogFor("owner")
 	other := catalogFor("other")
+	physical := req("owner", "POST", "/api/catalogs/"+id+"/books", `{"title":"Livro físico","kind":"physical","metadata":{"isbn":"0134685997","subtitle":"Subtítulo","pages":"416","page":"12","notes":"Minha nota","vendor":{"code":"42"}}}`)
+	expect(physical, 201)
+	if !strings.Contains(physical.Body.String(), `"isbn":"9780134685991"`) || !strings.Contains(physical.Body.String(), `"vendor":{"code":"42"}`) {
+		t.Fatal(physical.Body.String())
+	}
+	filtered := req("owner", "GET", "/api/catalogs/"+id+"/books?kind=digital", "")
+	expect(filtered, 200)
+	if strings.TrimSpace(filtered.Body.String()) != "[]" {
+		t.Fatal("physical books leaked into digital filter: " + filtered.Body.String())
+	}
+	expect(req("owner", "GET", "/api/catalogs/"+id+"/books?kind=other", ""), 400)
+
 	base := "/api/catalogs/" + id
 	expect(req("other", "GET", base+"/books", ""), 404)
 	expect(req("other", "PUT", "/api/admin/access", `{"email":"other@example.com","enabled":true,"admin":true}`), 403)

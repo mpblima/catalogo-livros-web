@@ -1,0 +1,215 @@
+.welcome {
+  min-height: 100dvh;
+  background: #102c24;
+  color: #eff1df;
+  padding: 0 5%;
+  overflow: hidden;
+}
+.welcome-shell {
+  max-width: 1400px;
+  margin: auto;
+}
+.welcome-nav {
+  height: 88px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #365247;
+  gap: 24px;
+}
+.welcome-nav .brand {
+  font-size: 22px;
+}
+.welcome-nav a {
+  font-size: 13px;
+  color: #d1ddc8;
+  text-underline-offset: 6px;
+}
+.welcome-nav a:hover {
+  color: #fff;
+}
+.welcome-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 4%;
+  padding: 40px 0;
+}
+.welcome .welcome-copy {
+  margin: 0;
+  max-width: none;
+  padding: 20px 0;
+}
+.welcome .welcome-copy h1 {
+  font-size: clamp(34px, 4.5vw, 66px);
+  line-height: 1.17;
+  letter-spacing: -1.8px;
+  margin: 20px 0 25px;
+}
+.welcome .eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.7px;
+  color: #c9d991;
+}
+.welcome .welcome-copy > p:not(.eyebrow) {
+  font-size: 17px;
+  line-height: 1.8;
+  max-width: 440px;
+  color: #d0dccd;
+  margin: 0 0 32px;
+}
+.welcome .actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.welcome .actions button {
+  font-weight: 600;
+  min-height: 48px;
+  padding: 13px 22px;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.welcome .welcome-signup {
+  background: #d7e5a1;
+  color: #18382b;
+  border: 1px solid #d7e5a1;
+}
+.welcome .welcome-signup:hover {
+  background: #e5efc1;
+}
+.welcome .welcome-signin {
+  background: #fffefa;
+  color: #173f32;
+  border: 1px solid #fffefa;
+}
+.welcome .welcome-signin:hover {
+  background: #e3e9dc;
+}
+.welcome .actions button:active {
+  transform: translateY(1px);
+}
+.welcome-image {
+  border-radius: 8px;
+  overflow: hidden;
+  height: clamp(350px, 43vw, 530px);
+}
+.welcome-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 60%;
+}
+.welcome-features {
+  scroll-margin-top: 25px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  padding: 30px 0 35px;
+  border-top: 1px solid #365247;
+}
+.welcome-features > div {
+  padding-right: 20px;
+}
+.welcome-features h2 {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0 0 12px;
+  color: #eff1df;
+}
+.welcome .welcome-features p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #c4d2c4;
+  margin: 0;
+  max-width: 330px;
+}
+.welcome-foot {
+  border-top: 1px solid #365247;
+  padding: 20px 0;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #b4c6b6;
+}
+@media (min-width: 1600px) {
+  .welcome {
+    padding: 0 7%;
+  }
+  .welcome-hero {
+    padding: 48px 0;
+  }
+}
+@media (max-width: 1024px) {
+  .welcome .welcome-copy h1 {
+    font-size: clamp(34px, 4.6vw, 48px);
+  }
+  .welcome-features {
+    gap: 20px;
+  }
+  .welcome .welcome-copy > p:not(.eyebrow) {
+    font-size: 15px;
+  }
+  .welcome-nav .brand {
+    font-size: 20px;
+  }
+}
+@media (max-width: 768px) {
+  .welcome {
+    padding: 0 24px;
+  }
+  .welcome-nav {
+    height: 76px;
+  }
+  .welcome-nav a {
+    display: none;
+  }
+  .welcome-hero {
+    grid-template-columns: 1fr;
+    padding: 30px 0;
+    gap: 28px;
+  }
+  .welcome .welcome-copy {
+    padding: 0;
+  }
+  .welcome .welcome-copy h1 {
+    font-size: clamp(30px, 6.3vw, 47px);
+    letter-spacing: -1px;
+  }
+  .welcome .welcome-copy > p:not(.eyebrow) {
+    max-width: 480px;
+  }
+  .welcome .eyebrow {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .welcome-image {
+    height: 320px;
+  }
+  .welcome-features {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 28px 0;
+  }
+  .welcome-features h2 {
+    font-size: 22px;
+  }
+  .welcome .welcome-features p {
+    max-width: 500px;
+  }
+  .welcome-foot {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .welcome .actions button {
+    padding: 12px 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome .actions button {
+    transition: none;
+  }
+}

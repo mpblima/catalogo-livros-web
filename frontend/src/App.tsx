@@ -1,11 +1,8 @@
-import { useAuth, SignInButton, SignUpButton, UserButton } from "@clerk/react";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { BookEditor } from "./BookEditor";
+import { Welcome } from "./Welcome";
+import type { Book } from "./book";
+import { useAuth, UserButton } from "@clerk/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 type Account = {
   id: string;
   email: string;
@@ -15,21 +12,7 @@ type Account = {
   universal: boolean;
 };
 type Catalog = { id: string; name: string; owner: boolean };
-type Book = {
-  id: string;
-  title: string;
-  kind: "physical" | "digital";
-  format: string;
-  path: string;
-  filename: string;
-  category: string;
-  metadata: Record<string, unknown>;
-  summary: string;
-  cover_url: string;
-  favorite: boolean;
-  reading: boolean;
-  version: number;
-};
+
 type Comment = {
   id: string;
   body: string;
@@ -42,11 +25,11 @@ type Grant = {
   universal: boolean;
   admin: boolean;
 };
-const blank = (): Book => ({
+const blank = (kind: Book["kind"] = "physical"): Book => ({
   id: "",
   title: "",
-  kind: "physical",
-  format: "FISICO",
+  kind,
+  format: kind === "physical" ? "FISICO" : "PDF",
   path: "",
   filename: "",
   category: "",
@@ -70,7 +53,7 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [query, setQuery] = useState("");
   const [shelf, setShelf] = useState("all");
-  const [kind, setKind] = useState("");
+  const [kind, setKind] = useState("physical");
   const [category, setCategory] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -95,12 +78,14 @@ export default function App() {
   const writing = useRef(false);
   const active = useRef(catalog);
   active.current = catalog;
+  const activeKind = useRef(kind);
+  activeKind.current = kind;
   const api = useCallback(
     async <T,>(path: string, method = "GET", body?: unknown): Promise<T> => {
       const token = await getToken();
       const cacheKey = `${userId}:${path}`;
       const cached =
-        method === "GET" && path.endsWith("/books")
+        method === "GET" && /\/books(?:\?|$)/.test(path)
           ? responseCache.current.get(cacheKey)
           : undefined;
       const response = await fetch(
@@ -123,7 +108,7 @@ export default function App() {
       if (response.status === 204) return undefined as T;
       const data = await response.json();
       const etag = response.headers.get("ETag");
-      if (etag && method === "GET" && path.endsWith("/books"))
+      if (etag && method === "GET" && /\/books(?:\?|$)/.test(path))
         responseCache.current.set(cacheKey, { etag, data });
       return data;
     },
@@ -176,11 +161,15 @@ export default function App() {
     async (id: string) => {
       if (writing.current) return;
       const epoch = readEpoch.current;
-      const result = await api<Book[]>(`/catalogs/${id}/books`);
-      if (active.current === id && epoch === readEpoch.current)
+      const result = await api<Book[]>(`/catalogs/${id}/books?kind=${kind}`);
+      if (
+        active.current === id &&
+        activeKind.current === kind &&
+        epoch === readEpoch.current
+      )
         setBooks(result);
     },
-    [api],
+    [api, kind],
   );
   useEffect(() => {
     setBooks([]);
@@ -225,6 +214,9 @@ export default function App() {
         dialog?.querySelectorAll<HTMLElement>(
           "button:not(:disabled),input,select,textarea,a[href]",
         ) || [],
+      ).filter(
+        (element) =>
+          !element.closest("[hidden]") && !element.matches(":disabled"),
       );
     (
       dialog?.querySelector<HTMLElement>("input,textarea") || focusable()[0]
@@ -287,15 +279,14 @@ export default function App() {
       setSelected(b);
       setNote("");
     });
-  const save = (event: FormEvent) => {
-    event.preventDefault();
-    if (!editing) return;
+  const save = (draft: Book) => {
     act(async () => {
       const saved = await api<Book>(
-        `${base}/books${editing.id ? "/" + editing.id : ""}`,
-        editing.id ? "PUT" : "POST",
-        editing,
+        `${base}/books${draft.id ? "/" + draft.id : ""}`,
+        draft.id ? "PUT" : "POST",
+        draft,
       );
+      if (kind && saved.kind !== kind) setKind(saved.kind);
       setBooks((list) =>
         [...list.filter((x) => x.id !== saved.id), saved].sort((a, b) =>
           a.title.localeCompare(b.title, "pt-BR"),
@@ -317,35 +308,7 @@ export default function App() {
     });
   if (!isLoaded)
     return <main className="setup">Carregando sua biblioteca…</main>;
-  if (!isSignedIn)
-    return (
-      <main className="welcome">
-        <div className="brand">
-          ▤ <span>Catálogo de Livros</span>
-        </div>
-        <div className="welcome-copy">
-          <p className="eyebrow">SEU ACERVO PESSOAL, AGORA COMPARTILHADO</p>
-          <h1>
-            Uma casa para
-            <br />
-            todos os seus livros.
-          </h1>
-          <p>
-            Organize livros físicos e digitais, compartilhe seu catálogo e
-            guarde as ideias de cada leitura.
-          </p>
-          <div className="actions">
-            <SignUpButton mode="modal">
-              <button className="primary">Criar conta</button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <button>Já tenho conta</button>
-            </SignInButton>
-          </div>
-          <small>Seus arquivos digitais continuam no seu computador.</small>
-        </div>
-      </main>
-    );
+  if (!isSignedIn) return <Welcome />;
   if (!account || account.id !== userId)
     return (
       <main className="setup">{error || "Carregando sua biblioteca…"}</main>
@@ -468,13 +431,25 @@ export default function App() {
                   ? "Seus favoritos"
                   : shelf === "reading"
                     ? "Estou lendo"
-                    : "Todos os livros"}
+                    : kind === "physical"
+                      ? "Livros físicos"
+                      : kind === "digital"
+                        ? "Livros digitais"
+                        : "Todos os livros"}
               </h1>
             </div>
             {catalog && (
-              <button className="primary" onClick={() => setEditing(blank())}>
-                + Adicionar livro
-              </button>
+              <div className="actions add-books">
+                <button
+                  className="primary"
+                  onClick={() => setEditing(blank("physical"))}
+                >
+                  + Livro físico
+                </button>
+                <button onClick={() => setEditing(blank("digital"))}>
+                  + Livro digital
+                </button>
+              </div>
             )}
           </div>
           {error && (
@@ -632,183 +607,32 @@ export default function App() {
         </main>
       </div>
       {editing && (
-        <div className="overlay">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-title"
-          >
-            <button
-              className="close"
-              aria-label="Fechar edição"
-              onClick={() => setEditing(null)}
-            >
-              ×
-            </button>
-            <h2 id="edit-title">
-              {editing.id ? "Editar livro" : "Adicionar livro"}
-            </h2>
-            <form onSubmit={save}>
-              <label>
-                Título
-                <input
-                  required
-                  maxLength={500}
-                  value={editing.title}
-                  onChange={(e) =>
-                    setEditing({ ...editing, title: e.target.value })
-                  }
-                />
-              </label>
-              <div className="two">
-                <label>
-                  Acervo
-                  <select
-                    value={editing.kind}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        kind: e.target.value as Book["kind"],
-                        format:
-                          e.target.value === "physical" ? "FISICO" : "PDF",
-                      })
-                    }
-                  >
-                    <option value="physical">Físico</option>
-                    <option value="digital">Digital</option>
-                  </select>
-                </label>
-                <label>
-                  Formato
-                  <input
-                    value={editing.format}
-                    onChange={(e) =>
-                      setEditing({ ...editing, format: e.target.value })
-                    }
-                  />
-                </label>
-              </div>
-              {[
-                "author",
-                "publisher",
-                "isbn",
-                "year",
-                "edition",
-                "language",
-              ].map((key, i) => (
-                <label key={key}>
-                  {
-                    [
-                      "Autor",
-                      "Editora",
-                      "ISBN / código de barras",
-                      "Ano",
-                      "Edição",
-                      "Idioma",
-                    ][i]
-                  }
-                  <input
-                    value={String(editing.metadata[key] || "")}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        metadata: {
-                          ...editing.metadata,
-                          [key]: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </label>
-              ))}
-              <label>
-                Assunto / subassunto
-                <input
-                  placeholder="Literatura / Romance"
-                  value={editing.category}
-                  onChange={(e) =>
-                    setEditing({ ...editing, category: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                {editing.kind === "digital"
-                  ? "Caminho físico do arquivo"
-                  : "Local / estante"}
-                <input
-                  value={
-                    editing.kind === "digital"
-                      ? editing.path
-                      : String(editing.metadata.location || "")
-                  }
-                  onChange={(e) =>
-                    setEditing(
-                      editing.kind === "digital"
-                        ? { ...editing, path: e.target.value }
-                        : {
-                            ...editing,
-                            metadata: {
-                              ...editing.metadata,
-                              location: e.target.value,
-                            },
-                          },
-                    )
-                  }
-                />
-              </label>
-              <label>
-                URL da capa
-                <input
-                  type="url"
-                  value={editing.cover_url}
-                  onChange={(e) =>
-                    setEditing({ ...editing, cover_url: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Resumo
-                <textarea
-                  value={editing.summary}
-                  onChange={(e) =>
-                    setEditing({ ...editing, summary: e.target.value })
-                  }
-                />
-              </label>
-              <div className="actions">
-                <button disabled={busy} className="primary">
-                  Salvar livro
-                </button>
-                {editing.id && (
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          "Excluir este cadastro? O arquivo no computador será mantido.",
-                        )
-                      )
-                        act(async () => {
-                          await api(`${base}/books/${editing.id}`, "DELETE", {
-                            version: editing.version,
-                          });
-                          setBooks((list) =>
-                            list.filter((b) => b.id !== editing.id),
-                          );
-                          setEditing(null);
-                        });
-                    }}
-                  >
-                    Excluir cadastro
-                  </button>
-                )}
-              </div>
-            </form>
-          </section>
-        </div>
+        <BookEditor
+          key={editing.id || editing.kind}
+          book={editing}
+          busy={busy}
+          serverError={error}
+          onChange={setEditing}
+          onClose={() => setEditing(null)}
+          onSave={save}
+          lookup={(isbn) =>
+            api<Book>(`/books/lookup?isbn=${encodeURIComponent(isbn)}`)
+          }
+          onDelete={() => {
+            if (
+              window.confirm(
+                "Excluir este cadastro? O arquivo no computador será mantido.",
+              )
+            )
+              act(async () => {
+                await api(`${base}/books/${editing.id}`, "DELETE", {
+                  version: editing.version,
+                });
+                setBooks((list) => list.filter((b) => b.id !== editing.id));
+                setEditing(null);
+              });
+          }}
+        />
       )}
       {selected && (
         <div className="overlay">

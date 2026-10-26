@@ -3,9 +3,11 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -52,15 +54,41 @@ func validateBook(b *Book) error {
 			return problem(400, "A capa precisa de uma URL HTTPS válida.")
 		}
 	}
-	// No cloud reader or progress tracking; the reading flag remains a shelf filter.
+	for _, key := range []string{"pages", "page"} {
+		if value, exists := b.Metadata[key]; exists && fmt.Sprint(value) != "" {
+			raw := fmt.Sprint(value)
+			if number, ok := value.(float64); ok {
+				raw = strconv.FormatFloat(number, 'f', -1, 64)
+			}
+			n, err := strconv.Atoi(raw)
+			limit := 1000000
+			if key == "pages" {
+				limit = 9999999
+			}
+			if err != nil || n < 1 || n > limit {
+				return problem(400, "Número de páginas ou página atual inválida.")
+			}
+		}
+	}
+	if raw := textValue(b.Metadata["isbn"]); raw != "" {
+		normalized, err := isbnCode(raw)
+		if err != nil {
+			return err
+		}
+		b.Metadata["isbn"] = normalized
+	}
 	return nil
 }
 func (s *Server) books(w http.ResponseWriter, r *http.Request) error {
 	if err := s.access(r, false); err != nil {
 		return err
 	}
+	kind := r.URL.Query().Get("kind")
+	if kind != "" && kind != "physical" && kind != "digital" {
+		return problem(400, "Tipo de livro inválido.")
+	}
 	var etag string
-	if err := s.DB.QueryRow(r.Context(), `select md5(coalesce(string_agg(id::text||':'||version::text,',' order by id),'')) from catalog.books where catalog_id=$1 and deleted_at is null`, r.PathValue("catalog")).Scan(&etag); err != nil {
+	if err := s.DB.QueryRow(r.Context(), `select md5(coalesce(string_agg(id::text||':'||version::text,',' order by id),'')) from catalog.books where catalog_id=$1 and deleted_at is null and ($2='' or kind=$2)`, r.PathValue("catalog"), kind).Scan(&etag); err != nil {
 		return err
 	}
 	etag = "\"" + etag + "\""
@@ -69,7 +97,7 @@ func (s *Server) books(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(304)
 		return nil
 	}
-	rows, err := s.DB.Query(r.Context(), `select `+bookColumns+` from catalog.books where catalog_id=$1 and deleted_at is null order by lower(title),id`, r.PathValue("catalog"))
+	rows, err := s.DB.Query(r.Context(), `select `+bookColumns+` from catalog.books where catalog_id=$1 and deleted_at is null and ($2='' or kind=$2) order by lower(title),id`, r.PathValue("catalog"), kind)
 	if err != nil {
 		return err
 	}
