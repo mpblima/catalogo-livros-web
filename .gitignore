@@ -1,0 +1,33 @@
+# Configurações locais e credenciais
+.env
+.env.*
+!.env.example
+*.local
+
+# Dados pessoais e arquivos de livros
+/data/
+/uploads/
+/backups/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
+*.pdf
+*.epub
+
+# Dependências e artefatos gerados
+node_modules/
+dist/
+build/
+target/
+coverage/
+*.log
+
+# Editor e sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
