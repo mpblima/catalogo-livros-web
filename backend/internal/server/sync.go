@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"image/png"
@@ -478,15 +479,23 @@ func (s *Server) bookCover(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	var data []byte
-	err := s.DB.QueryRow(r.Context(), `select c.content from catalog.book_covers c join catalog.books b on b.id=c.book_id where c.catalog_id=$1 and c.book_id=$2 and b.deleted_at is null`, r.PathValue("catalog"), r.PathValue("book")).Scan(&data)
+	var version int64
+	err := s.DB.QueryRow(r.Context(), `select c.content,b.version from catalog.book_covers c join catalog.books b on b.id=c.book_id where c.catalog_id=$1 and c.book_id=$2 and b.deleted_at is null`, r.PathValue("catalog"), r.PathValue("book")).Scan(&data, &version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return problem(404, "Capa não encontrada.")
 	}
 	if err != nil {
 		return err
 	}
+	etag := fmt.Sprintf(`"cover-%d"`, version)
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", "private, max-age=86400, immutable")
+	w.Header().Add("Vary", "Authorization")
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return nil
+	}
 	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Cache-Control", "private, no-store")
 	w.Write(data)
 	return nil
 }

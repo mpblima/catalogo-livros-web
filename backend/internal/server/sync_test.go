@@ -175,6 +175,15 @@ func TestDesktopSync(t *testing.T) {
 	if !bytes.Equal(coverResponse.Body.Bytes(), cover.Bytes()) {
 		t.Fatal("cover did not round trip")
 	}
+	if !strings.Contains(coverResponse.Header().Get("Cache-Control"), "max-age=86400") || !strings.Contains(strings.Join(coverResponse.Header().Values("Vary"), ","), "Authorization") {
+		t.Fatalf("private cover cache headers missing: %v", coverResponse.Header())
+	}
+	cachedRequest := httptest.NewRequest("GET", base+"/books/"+cloudID+"/cover?v="+fmt.Sprint(book.Version), nil)
+	cachedRequest.Header.Set("Authorization", "Bearer owner")
+	cachedRequest.Header.Set("If-None-Match", coverResponse.Header().Get("ETag"))
+	cachedResponse := httptest.NewRecorder()
+	h.ServeHTTP(cachedResponse, cachedRequest)
+	expect(cachedResponse, 304)
 	expect(req("other", "GET", base+"/books/"+cloudID+"/cover", nil), 404)
 	book.Title = "Versão da nuvem"
 	book.Metadata["page"] = "12"

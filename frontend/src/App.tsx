@@ -93,6 +93,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
   const [selected, setSelected] = useState<Book | null>(null);
+  const [bookPage, setBookPage] = useState(1);
   const [comments, setComments] = useState<Comment[]>([]);
   const [note, setNote] = useState("");
   const [panel, setPanel] = useState<"members" | "admin" | null>(null);
@@ -107,6 +108,8 @@ export default function App() {
   const responseCache = useRef(
     new Map<string, { etag: string; data: unknown }>(),
   );
+  const reloadRequest = useRef<{ key: string; promise: Promise<void> } | null>(null);
+  const commentsRequest = useRef(false);
   const readEpoch = useRef(0);
   const writing = useRef(false);
   const active = useRef(catalog);
@@ -191,23 +194,33 @@ export default function App() {
     };
   }, [isSignedIn, userId, api]);
   const reload = useCallback(
-    async (id: string) => {
-      if (writing.current) return;
+    (id: string): Promise<void> => {
+      if (writing.current) return Promise.resolve();
+      const key = `${id}:${kind}`;
+      if (reloadRequest.current?.key === key) return reloadRequest.current.promise;
       const epoch = readEpoch.current;
-      const [result, paths, links] = await Promise.all([
-        api<Book[]>(`/catalogs/${id}/books?kind=${kind}`),
-        api<string[]>(`/catalogs/${id}/categories`),
-        api<Relation[]>(`/catalogs/${id}/relations`),
-      ]);
-      if (
-        active.current === id &&
-        activeKind.current === kind &&
-        epoch === readEpoch.current
-      ) {
-        setBooks(result);
-        setCategoryPaths(paths);
-        setRelations(links);
-      }
+      const request = (async () => {
+        const [result, paths, links] = await Promise.all([
+          api<Book[]>(`/catalogs/${id}/books?kind=${kind}`),
+          api<string[]>(`/catalogs/${id}/categories`),
+          api<Relation[]>(`/catalogs/${id}/relations`),
+        ]);
+        if (
+          active.current === id &&
+          activeKind.current === kind &&
+          epoch === readEpoch.current
+        ) {
+          setBooks(result);
+          setCategoryPaths(paths);
+          setRelations(links);
+        }
+      })();
+      let tracked: Promise<void>;
+      tracked = request.finally(() => {
+        if (reloadRequest.current?.promise === tracked) reloadRequest.current = null;
+      });
+      reloadRequest.current = { key, promise: tracked };
+      return tracked;
     },
     [api, kind],
   );
@@ -252,10 +265,12 @@ export default function App() {
   useEffect(() => {
     if (!selected || refreshSeconds === 0) return;
     const refreshComments = () => {
-      if (document.hidden || writing.current) return;
+      if (document.hidden || writing.current || commentsRequest.current) return;
+      commentsRequest.current = true;
       api<Comment[]>(`${base}/books/${selected.id}/comments`)
         .then(setComments)
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => { commentsRequest.current = false; });
     };
     const timer = window.setInterval(refreshComments, refreshSeconds * 1000);
     return () => clearInterval(timer);
@@ -345,6 +360,11 @@ export default function App() {
           ).includes(t),
         ),
   );
+  const bookGroups = groupBooks(filtered, relations);
+  const pageCount = Math.max(1, Math.ceil(bookGroups.length / 30));
+  const visibleGroups = bookGroups.slice((bookPage - 1) * 30, bookPage * 30);
+  useEffect(() => setBookPage(1), [catalog, kind, category, shelf, query]);
+  useEffect(() => setBookPage((page) => Math.min(page, pageCount)), [pageCount]);
   const toggle = (b: Book, field: "favorite" | "reading") =>
     act(async () => {
       const saved = await api<Book>(`${base}/books/${b.id}`, "PUT", {
@@ -647,7 +667,7 @@ export default function App() {
                   : `${filtered.length} livros no catálogo`}
               </p>
               <section className="books">
-                {groupBooks(filtered, relations).map((group) => {
+                {visibleGroups.map((group) => {
                   const b =
                     group.books.find(
                       (item) => item.id === versions[group.id],
@@ -744,6 +764,17 @@ export default function App() {
                   );
                 })}
               </section>
+              {pageCount > 1 && (
+                <nav className="catalog-pagination" aria-label="Paginação do catálogo">
+                  <button disabled={bookPage === 1} onClick={() => setBookPage((page) => Math.max(1, page - 1))}>
+                    Anterior
+                  </button>
+                  <span aria-live="polite">Página {bookPage} de {pageCount} · até 30 livros</span>
+                  <button disabled={bookPage === pageCount} onClick={() => setBookPage((page) => Math.min(pageCount, page + 1))}>
+                    Próxima
+                  </button>
+                </nav>
+              )}
               {!loading && !filtered.length && (
                 <section className="empty">
                   <h2>

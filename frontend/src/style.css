@@ -214,6 +214,18 @@ form {
   display: grid;
   gap: 0;
 }
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 22px 0 36px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.catalog-pagination button {
+  min-width: 92px;
+}
 .book {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);

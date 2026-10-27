@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 type Props = {
   url: string;
   stored: boolean;
@@ -12,9 +12,30 @@ type Props = {
 function StoredCover({ catalog, id, version, title, onUnavailable }: Props) {
   const { getToken } = useAuth();
   const [local, setLocal] = useState("");
+  const [visible, setVisible] = useState(false);
+  const placeholder = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const element = placeholder.current;
+    if (!element) return;
+    if (!("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [catalog, id]);
   useEffect(() => {
     setLocal("");
-    if (!catalog || !id) return;
+    if (!visible || !catalog || !id) return;
     let cancelled = false;
     let objectURL = "";
     (async () => {
@@ -26,8 +47,9 @@ function StoredCover({ catalog, id, version, title, onUnavailable }: Props) {
             catalog +
             "/books/" +
             id +
-            "/cover",
-          { headers: { Authorization: "Bearer " + token }, cache: "no-store" },
+            "/cover?v=" +
+            encodeURIComponent(version),
+          { headers: { Authorization: "Bearer " + token } },
         );
         if (!response.ok) throw Error("Capa indisponível");
         const blob = await response.blob();
@@ -42,11 +64,13 @@ function StoredCover({ catalog, id, version, title, onUnavailable }: Props) {
       cancelled = true;
       if (objectURL) URL.revokeObjectURL(objectURL);
     };
-  }, [catalog, id, version, getToken]);
+  }, [catalog, id, version, getToken, visible]);
   return local ? (
-    <img src={local} alt={"Capa de " + title} />
+    <img src={local} alt={"Capa de " + title} loading="lazy" decoding="async" />
   ) : (
-    <span>Sem capa</span>
+    <span ref={placeholder} aria-label={visible ? "Carregando capa" : "Capa carregada quando aparecer na tela"}>
+      {visible ? "Carregando capa…" : ""}
+    </span>
   );
 }
 export function BookCover(props: Props) {
@@ -57,6 +81,8 @@ export function BookCover(props: Props) {
       <img
         src={props.url}
         alt={"Capa de " + props.title}
+        loading="lazy"
+        decoding="async"
         referrerPolicy="no-referrer"
         onError={() => {
           setFailed(true);

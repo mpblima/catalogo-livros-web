@@ -40,10 +40,12 @@ const original = {
   version: 1,
 };
 let book = { ...original };
+let catalogBooks: any[] = [];
 let writes: any[] = [];
 beforeEach(() => {
   session.signedIn = true;
   book = { ...original };
+  catalogBooks = [book];
   writes = [];
   vi.stubGlobal(
     "fetch",
@@ -65,7 +67,7 @@ beforeEach(() => {
         writes.push(JSON.parse(options.body));
         book = { ...JSON.parse(options.body), version: 2 };
         data = book;
-      } else if (/\/books(?:\?|$)/.test(url)) data = [book];
+      } else if (/\/books(?:\?|$)/.test(url)) data = catalogBooks;
       else if (url.endsWith("/categories") || url.endsWith("/relations"))
         data = [];
       else if (url.endsWith("/comments"))
@@ -96,6 +98,24 @@ describe("catálogo web", () => {
     render(<App />);
     expect(screen.getByText("Criar conta")).toBeTruthy();
     expect(fetch).not.toHaveBeenCalled();
+  });
+  it("limita a lista a 30 livros por página", async () => {
+    catalogBooks = Array.from({ length: 31 }, (_, index) => ({
+      ...original,
+      id: `book-${index + 1}`,
+      title: `Livro ${index + 1}`,
+      kind: "physical",
+      format: "FISICO",
+      metadata: {},
+    }));
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Livro 1" });
+    expect(screen.getByRole("heading", { name: "Livro 30" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Livro 31" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Próxima" }));
+    expect(await screen.findByRole("heading", { name: "Livro 31" })).toBeTruthy();
+    expect(screen.getByText("Página 2 de 2 · até 30 livros")).toBeTruthy();
   });
   it("remove favorito do filtro assim que a alteração é salva", async () => {
     const user = userEvent.setup();
