@@ -112,6 +112,13 @@ func TestIntegration(t *testing.T) {
 	if strings.TrimSpace(filtered.Body.String()) != "[]" {
 		t.Fatal("physical books leaked into digital filter: " + filtered.Body.String())
 	}
+	paged := req("owner", "GET", "/api/catalogs/"+id+"/books?kind=physical&limit=30&offset=0&q=fisico", "")
+	expect(paged, 200)
+	var page bookPage
+	if err = json.Unmarshal(paged.Body.Bytes(), &page); err != nil || page.Total != 1 || page.Groups != 1 || len(page.Items) != 1 || page.Items[0].Title != "Livro físico" {
+		t.Fatalf("unexpected filtered page: %#v (%v)", page, err)
+	}
+	expect(req("owner", "GET", "/api/catalogs/"+id+"/books?limit=101", ""), 400)
 	expect(req("owner", "GET", "/api/catalogs/"+id+"/books?kind=other", ""), 400)
 
 	base := "/api/catalogs/" + id
@@ -137,6 +144,12 @@ func TestIntegration(t *testing.T) {
 	json.Unmarshal(another.Body.Bytes(), &edition)
 	relationship := fmt.Sprintf(`{"book_id":%q,"related_book_id":%q,"kind":"sample_of"}`, book.ID, edition.ID)
 	expect(req("owner", "POST", base+"/relations", relationship), 200)
+	groupedPageResponse := req("owner", "GET", base+"/books?kind=digital&limit=1&offset=0", "")
+	expect(groupedPageResponse, 200)
+	var groupedPage bookPage
+	if err = json.Unmarshal(groupedPageResponse.Body.Bytes(), &groupedPage); err != nil || groupedPage.Total != 2 || groupedPage.Groups != 1 || len(groupedPage.Items) != 2 {
+		t.Fatalf("related digital versions were split across server pages: %#v (%v)", groupedPage, err)
+	}
 	links := req("owner", "GET", base+"/relations", "")
 	expect(links, 200)
 	if !strings.Contains(links.Body.String(), "sample_of") {

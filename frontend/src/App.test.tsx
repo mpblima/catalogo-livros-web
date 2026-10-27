@@ -66,8 +66,37 @@ beforeEach(() => {
       else if (url.endsWith("/books/book1") && options.method === "PUT") {
         writes.push(JSON.parse(options.body));
         book = { ...JSON.parse(options.body), version: 2 };
+        catalogBooks = catalogBooks.map((item) => item.id === book.id ? book : item);
         data = book;
-      } else if (/\/books(?:\?|$)/.test(url)) data = catalogBooks;
+      } else if (/\/books(?:\?|$)/.test(url)) {
+        const parsed = new URL(url, "http://localhost");
+        if (parsed.searchParams.has("limit")) {
+          const offset = Number(parsed.searchParams.get("offset") || 0);
+          const limit = Number(parsed.searchParams.get("limit") || 30);
+          const kind = parsed.searchParams.get("kind");
+          const shelf = parsed.searchParams.get("shelf");
+          const category = parsed.searchParams.get("category") || "";
+          const query = (parsed.searchParams.get("q") || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/\s+/).filter(Boolean);
+          const selected = catalogBooks.filter((item) =>
+            (!kind || item.kind === kind) &&
+            (!category || item.category === category || item.category.startsWith(category + "/")) &&
+            (shelf === "favorites" ? item.favorite : shelf === "reading" ? item.reading : true) &&
+            query.every((term) => `${item.title} ${item.category} ${item.path} ${JSON.stringify(item.metadata)} ${item.summary}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(term)),
+          );
+          data = {
+            items: selected.slice(offset, offset + limit),
+            total: selected.length,
+            groups: selected.length,
+            offset,
+            limit,
+            counts: {
+              all: catalogBooks.filter((item) => !kind || item.kind === kind).length,
+              favorites: catalogBooks.filter((item) => (!kind || item.kind === kind) && item.favorite).length,
+              reading: catalogBooks.filter((item) => (!kind || item.kind === kind) && item.reading).length,
+            },
+          };
+        } else data = catalogBooks;
+      }
       else if (url.endsWith("/categories") || url.endsWith("/relations"))
         data = [];
       else if (url.endsWith("/comments"))
@@ -116,6 +145,10 @@ describe("catálogo web", () => {
     await user.click(screen.getByRole("button", { name: "Próxima" }));
     expect(await screen.findByRole("heading", { name: "Livro 31" })).toBeTruthy();
     expect(screen.getByText("Página 2 de 2 · até 30 livros")).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/books?kind=physical&limit=30&offset=30"),
+      expect.anything(),
+    );
   });
   it("remove favorito do filtro assim que a alteração é salva", async () => {
     const user = userEvent.setup();

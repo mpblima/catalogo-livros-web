@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 )
 
 type Book struct {
@@ -29,6 +33,33 @@ type Book struct {
 }
 
 const bookColumns = `id::text,title,kind,format,path,filename,category,metadata,summary,cover_url,favorite,reading,version`
+
+type bookPage struct {
+	Items  []Book `json:"items"`
+	Total  int    `json:"total"`
+	Offset int    `json:"offset"`
+	Limit  int    `json:"limit"`
+	Groups int    `json:"groups"`
+	Counts struct {
+		All       int `json:"all"`
+		Favorites int `json:"favorites"`
+		Reading   int `json:"reading"`
+	} `json:"counts"`
+}
+
+func bookSearchTerms(raw string) ([]string, error) {
+	if utf8.RuneCountInString(raw) > 200 {
+		return nil, problem(400, "A busca pode ter até 200 caracteres.")
+	}
+	normalized := norm.NFD.String(strings.ToLower(strings.TrimSpace(raw)))
+	var clean strings.Builder
+	for _, r := range normalized {
+		if !unicode.Is(unicode.Mn, r) {
+			clean.WriteRune(r)
+		}
+	}
+	return strings.Fields(clean.String()), nil
+}
 
 func readBook(row pgx.Row) (Book, error) {
 	var b Book
@@ -87,6 +118,88 @@ func (s *Server) books(w http.ResponseWriter, r *http.Request) error {
 	kind := r.URL.Query().Get("kind")
 	if kind != "" && kind != "physical" && kind != "digital" {
 		return problem(400, "Tipo de livro inválido.")
+	}
+	if _, paginated := r.URL.Query()["limit"]; paginated || r.URL.Query().Has("offset") {
+		limit, offset := 30, 0
+		var err error
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			limit, err = strconv.Atoi(raw)
+			if err != nil || limit < 1 || limit > 100 {
+				return problem(400, "O limite precisa ficar entre 1 e 100 livros.")
+			}
+		}
+		if raw := r.URL.Query().Get("offset"); raw != "" {
+			offset, err = strconv.Atoi(raw)
+			if err != nil || offset < 0 || offset > 10000000 {
+				return problem(400, "A página solicitada é inválida.")
+			}
+		}
+		category := strings.TrimSpace(r.URL.Query().Get("category"))
+		if len(category) > 1000 {
+			return problem(400, "A categoria é inválida.")
+		}
+		shelf := r.URL.Query().Get("shelf")
+		if shelf == "" {
+			shelf = "all"
+		}
+		if shelf != "all" && shelf != "favorites" && shelf != "reading" {
+			return problem(400, "A estante solicitada é inválida.")
+		}
+		terms, err := bookSearchTerms(r.URL.Query().Get("q"))
+		if err != nil {
+			return err
+		}
+		const filter = `catalog_id=$1 and deleted_at is null and ($2='' or kind=$2) and ($3='' or category=$3 or left(category,length($3)+1)=$3||'/') and ($4='all' or ($4='favorites' and favorite) or ($4='reading' and reading)) and not exists(select 1 from unnest($5::text[]) term where position(term in translate(lower(concat_ws(' ',title,category,path,filename,metadata::text,summary)),'áàâãäåéèêëíìîïóòôõöúùûüçñ','aaaaaaeeeeiiiiooooouuuucn'))=0)`
+		const pageQuery = `with recursive filtered as (
+ select b.* from catalog.books b where ` + filter + `
+), automatic_groups as (
+ select id,first_value(id) over(partition by upper(regexp_replace(metadata->>'isbn','[^0-9Xx]','','g')),regexp_replace(translate(lower(title),'áàâãäåéèêëíìîïóòôõöúùûüçñ','aaaaaaeeeeiiiiooooouuuucn'),'[^a-z0-9]','','g') order by id) anchor_id
+ from filtered where coalesce(metadata->>'isbn','')<>''
+), edges(a,b) as (
+ select x.book_id,x.related_book_id from catalog.book_relations x join filtered f on f.id=x.book_id join filtered g on g.id=x.related_book_id where x.catalog_id=$1
+ union select x.related_book_id,x.book_id from catalog.book_relations x join filtered f on f.id=x.book_id join filtered g on g.id=x.related_book_id where x.catalog_id=$1
+ union select id,anchor_id from automatic_groups where id<>anchor_id
+ union select anchor_id,id from automatic_groups where id<>anchor_id
+), reach(start_id,node_id) as (
+ select id,id from filtered
+ union
+ select reach.start_id,edges.b from reach join edges on edges.a=reach.node_id
+), roots as (
+ select start_id,min(node_id::text)::uuid root_id from reach group by start_id
+), group_roots as (
+ select r.root_id,min(lower(f.title)) sort_title from roots r join filtered f on f.id=r.start_id group by r.root_id
+), page_roots as (
+ select root_id from group_roots order by sort_title,root_id limit $7 offset $6
+), members as (
+ select r.start_id from roots r join page_roots p on p.root_id=r.root_id
+)
+select (select count(*) from filtered),(select count(*) from group_roots),coalesce((select array_agg(start_id::text) from members),'{}'::text[])`
+		var total, groups int
+		var ids []string
+		if err = s.DB.QueryRow(r.Context(), pageQuery, r.PathValue("catalog"), kind, category, shelf, terms, offset, limit).Scan(&total, &groups, &ids); err != nil {
+			return err
+		}
+		out := bookPage{Items: []Book{}, Total: total, Offset: offset, Limit: limit, Groups: groups}
+		if err = s.DB.QueryRow(r.Context(), `select count(*),count(*) filter(where favorite),count(*) filter(where reading) from catalog.books where catalog_id=$1 and deleted_at is null and ($2='' or kind=$2)`, r.PathValue("catalog"), kind).Scan(&out.Counts.All, &out.Counts.Favorites, &out.Counts.Reading); err != nil {
+			return err
+		}
+		rows, err := s.DB.Query(r.Context(), `select `+bookColumns+` from catalog.books where catalog_id=$1 and id=any($2::uuid[]) and deleted_at is null order by lower(title),id`, r.PathValue("catalog"), ids)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			b, err := readBook(rows)
+			if err != nil {
+				return err
+			}
+			out.Items = append(out.Items, b)
+		}
+		if err = rows.Err(); err != nil {
+			return err
+		}
+		respond(w, 200, out)
+		return nil
 	}
 	var etag string
 	if err := s.DB.QueryRow(r.Context(), `select md5(coalesce(string_agg(id::text||':'||version::text,',' order by id),'')) from catalog.books where catalog_id=$1 and deleted_at is null and ($2='' or kind=$2)`, r.PathValue("catalog"), kind).Scan(&etag); err != nil {

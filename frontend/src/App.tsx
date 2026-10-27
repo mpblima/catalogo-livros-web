@@ -50,18 +50,17 @@ const blank = (kind: Book["kind"] = "physical"): Book => ({
   reading: false,
   version: 0,
 });
-const norm = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
 export default function App() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const [account, setAccount] = useState<Account>();
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [catalog, setCatalog] = useState("");
   const [books, setBooks] = useState<Book[]>([]);
+  const [bookTotal, setBookTotal] = useState(0);
+  const [bookGroupTotal, setBookGroupTotal] = useState(0);
+  const [bookCounts, setBookCounts] = useState({ all: 0, favorites: 0, reading: 0 });
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [shelf, setShelf] = useState("all");
   const [kind, setKind] = useState("physical");
   const [category, setCategory] = useState("");
@@ -94,6 +93,7 @@ export default function App() {
   const [editing, setEditing] = useState<Book | null>(null);
   const [selected, setSelected] = useState<Book | null>(null);
   const [bookPage, setBookPage] = useState(1);
+  const [bookRefresh, setBookRefresh] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [note, setNote] = useState("");
   const [panel, setPanel] = useState<"members" | "admin" | null>(null);
@@ -116,6 +116,8 @@ export default function App() {
   active.current = catalog;
   const activeKind = useRef(kind);
   activeKind.current = kind;
+  const activeBookQuery = useRef({ catalog, kind, bookPage, category, shelf, query: debouncedQuery });
+  activeBookQuery.current = { catalog, kind, bookPage, category, shelf, query: debouncedQuery };
   const api = useCallback(
     async <T,>(path: string, method = "GET", body?: unknown): Promise<T> => {
       const token = await getToken();
@@ -196,21 +198,30 @@ export default function App() {
   const reload = useCallback(
     (id: string): Promise<void> => {
       if (writing.current) return Promise.resolve();
-      const key = `${id}:${kind}`;
+      const offset = (bookPage - 1) * 30;
+      const params = new URLSearchParams({ kind, limit: "30", offset: String(offset), shelf });
+      if (category) params.set("category", category);
+      if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
+      const requestState = { catalog: id, kind, bookPage, category, shelf, query: debouncedQuery };
+      const key = `${id}:${params.toString()}:${readEpoch.current}`;
       if (reloadRequest.current?.key === key) return reloadRequest.current.promise;
       const epoch = readEpoch.current;
       const request = (async () => {
         const [result, paths, links] = await Promise.all([
-          api<Book[]>(`/catalogs/${id}/books?kind=${kind}`),
+          api<{ items: Book[]; total: number; groups: number; counts: typeof bookCounts }>(`/catalogs/${id}/books?${params}`),
           api<string[]>(`/catalogs/${id}/categories`),
           api<Relation[]>(`/catalogs/${id}/relations`),
         ]);
         if (
           active.current === id &&
           activeKind.current === kind &&
+          JSON.stringify(activeBookQuery.current) === JSON.stringify(requestState) &&
           epoch === readEpoch.current
         ) {
-          setBooks(result);
+          setBooks(result.items);
+          setBookTotal(result.total);
+          setBookGroupTotal(result.groups);
+          setBookCounts(result.counts);
           setCategoryPaths(paths);
           setRelations(links);
         }
@@ -222,10 +233,13 @@ export default function App() {
       reloadRequest.current = { key, promise: tracked };
       return tracked;
     },
-    [api, kind],
+    [api, bookPage, category, debouncedQuery, kind, shelf],
   );
   useEffect(() => {
     setBooks([]);
+    setBookTotal(0);
+    setBookGroupTotal(0);
+    setBookCounts({ all: 0, favorites: 0, reading: 0 });
     setCategoryPaths([]);
     setRelations([]);
     setCategoryManager(false);
@@ -235,6 +249,9 @@ export default function App() {
     setPanel(null);
     setCategory("");
     setQuery("");
+    if (!catalog) return;
+  }, [catalog]);
+  useEffect(() => {
     if (!catalog) return;
     let cancelled = false;
     setLoading(true);
@@ -248,7 +265,11 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [catalog, reload]);
+  }, [catalog, reload, bookRefresh]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   // Refresh shared edits without resetting an open form. Writes use version checks.
   useEffect(() => {
     if (!catalog) return;
@@ -343,26 +364,10 @@ export default function App() {
   ]);
   const base = `/catalogs/${catalog}`;
   const current = catalogs.find((c) => c.id === catalog);
-  const filtered = books.filter(
-    (b) =>
-      (shelf !== "favorites" || b.favorite) &&
-      (shelf !== "reading" || b.reading) &&
-      (!kind || b.kind === kind) &&
-      (!category ||
-        b.category === category ||
-        b.category.startsWith(category + "/")) &&
-      norm(query)
-        .split(/\s+/)
-        .filter(Boolean)
-        .every((t) =>
-          norm(
-            `${b.title} ${b.category} ${b.path} ${JSON.stringify(b.metadata)} ${b.summary}`,
-          ).includes(t),
-        ),
-  );
+  const filtered = books;
   const bookGroups = groupBooks(filtered, relations);
-  const pageCount = Math.max(1, Math.ceil(bookGroups.length / 30));
-  const visibleGroups = bookGroups.slice((bookPage - 1) * 30, bookPage * 30);
+  const pageCount = Math.max(1, Math.ceil(bookGroupTotal / 30));
+  const visibleGroups = bookGroups;
   useEffect(() => setBookPage(1), [catalog, kind, category, shelf, query]);
   useEffect(() => setBookPage((page) => Math.min(page, pageCount)), [pageCount]);
   const toggle = (b: Book, field: "favorite" | "reading") =>
@@ -371,8 +376,11 @@ export default function App() {
         ...b,
         [field]: !b[field],
       });
-      setBooks((list) => list.map((x) => (x.id === saved.id ? saved : x)));
+      const remainsInShelf = shelf === "all" || (shelf === "favorites" ? saved.favorite : saved.reading);
+      setBooks((list) => remainsInShelf ? list.map((x) => (x.id === saved.id ? saved : x)) : list.filter((x) => x.id !== saved.id));
+      if (!remainsInShelf) setBookTotal((total) => Math.max(0, total - 1));
       if (selected?.id === saved.id) setSelected(saved);
+      setBookRefresh((value) => value + 1);
     });
   const openNotes = (b: Book) =>
     act(async () => {
@@ -388,14 +396,10 @@ export default function App() {
         draft,
       );
       if (kind && saved.kind !== kind) setKind(saved.kind);
-      setBooks((list) =>
-        [...list.filter((x) => x.id !== saved.id), saved].sort((a, b) =>
-          a.title.localeCompare(b.title, "pt-BR"),
-        ),
-      );
       setEditing(null);
       setCategoryPaths(await api<string[]>(`${base}/categories`));
       setRelations(await api<Relation[]>(`${base}/relations`));
+      setBookRefresh((value) => value + 1);
     });
   };
   const openPanel = (value: "members" | "admin") =>
@@ -474,13 +478,7 @@ export default function App() {
               >
                 {label}
                 <span>
-                  {
-                    books.filter(
-                      (b) =>
-                        value === "all" ||
-                        (value === "favorites" ? b.favorite : b.reading),
-                    ).length
-                  }
+                  {bookCounts[value as keyof typeof bookCounts]}
                 </span>
               </button>
             ))}
@@ -616,7 +614,7 @@ export default function App() {
             </section>
           )}
           {catalog && (
-            <>
+    <>
               <section className="collection-banner">
                 <div>
                   <p className="eyebrow">ESPAÇO PARA SUAS DESCOBERTAS</p>
@@ -627,7 +625,7 @@ export default function App() {
                   </h2>
                 </div>
                 <div className="banner-count">
-                  <strong>{books.length}</strong>
+                  <strong>{bookCounts.all}</strong>
                   <span>livros no seu acervo</span>
                 </div>
               </section>
@@ -654,8 +652,7 @@ export default function App() {
                   onChange={(e) => setCategory(e.target.value)}
                 >
                   <option value="">Todos os assuntos</option>
-                  {[...new Set(books.map((b) => b.category).filter(Boolean))]
-                    .sort()
+                  {[...categoryPaths].sort()
                     .map((c) => (
                       <option key={c}>{c}</option>
                     ))}
@@ -664,7 +661,7 @@ export default function App() {
               <p className="count" aria-live="polite">
                 {loading
                   ? "Carregando…"
-                  : `${filtered.length} livros no catálogo`}
+                  : `${bookTotal} livros no catálogo`}
               </p>
               <section className="books">
                 {visibleGroups.map((group) => {
@@ -769,7 +766,7 @@ export default function App() {
                   <button disabled={bookPage === 1} onClick={() => setBookPage((page) => Math.max(1, page - 1))}>
                     Anterior
                   </button>
-                  <span aria-live="polite">Página {bookPage} de {pageCount} · até 30 livros</span>
+                <span aria-live="polite">Página {bookPage} de {pageCount} · até 30 livros</span>
                   <button disabled={bookPage === pageCount} onClick={() => setBookPage((page) => Math.min(pageCount, page + 1))}>
                     Próxima
                   </button>
@@ -850,6 +847,8 @@ export default function App() {
                   version: editing.version,
                 });
                 setBooks((list) => list.filter((b) => b.id !== editing.id));
+                setBookTotal((total) => Math.max(0, total - 1));
+                setBookRefresh((value) => value + 1);
                 setEditing(null);
               });
           }}

@@ -18,7 +18,7 @@ Os marcadores favorito/leitura pertencem ao livro no catálogo compartilhado nes
 
 Anotações são registros independentes com autor, data e conteúdo. Não atribuir anotações legadas a um usuário arbitrário: a sincronização deverá distinguir a origem desktop e preservar o conteúdo original.
 
-Livros usam `version` para atualização e exclusão lógica. Se o cliente envia uma versão antiga, o servidor responde 409; a interface preserva o formulário. A lista usa ETag para evitar transferências repetidas quando não há mudanças. Alterações compartilhadas são consultadas periodicamente e ao retornar à janela; não há promessa de atualização remota instantânea.
+Livros usam `version` para atualização e exclusão lógica. Se o cliente envia uma versão antiga, o servidor responde 409; a interface preserva o formulário. A interface consulta páginas de até 30 obras lógicas, com filtros de tipo, categoria, favoritos, leitura e busca aplicados no servidor. A API mantém a resposta antiga sem paginação para clientes já existentes. Busca é limitada a 200 caracteres e usa debounce no navegador. Capas carregam sob demanda e usam cache privado versionado. Alterações compartilhadas são consultadas periodicamente e ao retornar à janela; não há promessa de atualização remota instantânea.
 
 ## Contrato a implementar para sincronização desktop
 
