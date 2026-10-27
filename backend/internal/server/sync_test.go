@@ -19,6 +19,29 @@ import (
 	"time"
 )
 
+func TestValidateSyncedBookPreservesLegacyISBN(t *testing.T) {
+	for _, isbn := range []string{"9781484245316; 9781484245293", "not-a-valid-isbn"} {
+		book := Book{Title: "Legacy catalog entry", Kind: "physical", Metadata: map[string]any{"isbn": isbn}}
+		if err := validateSyncedBook(&book); err != nil {
+			t.Fatalf("sync rejected legacy ISBN %q: %v", isbn, err)
+		}
+		if got := book.Metadata["isbn"]; got != isbn {
+			t.Fatalf("sync changed legacy ISBN: got %v, want %q", got, isbn)
+		}
+	}
+	book := Book{Title: "Valid ISBN", Kind: "physical", Metadata: map[string]any{"isbn": "0-13-468599-7"}}
+	if err := validateSyncedBook(&book); err != nil || book.Metadata["isbn"] != "9780134685991" {
+		t.Fatalf("valid ISBN was not normalized: metadata=%v err=%v", book.Metadata, err)
+	}
+	book = Book{Title: "", Kind: "physical", Metadata: map[string]any{"isbn": "legacy value"}}
+	if err := validateSyncedBook(&book); err == nil {
+		t.Fatal("sync accepted a book with an empty title")
+	}
+	if got := book.Metadata["isbn"]; got != "legacy value" {
+		t.Fatalf("validation failure lost legacy ISBN: got %v", got)
+	}
+}
+
 func TestDesktopSync(t *testing.T) {
 	if os.Getenv("TEST_DATABASE_URL") == "" {
 		t.Skip("disposable database required")

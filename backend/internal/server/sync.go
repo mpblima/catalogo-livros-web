@@ -69,6 +69,27 @@ type syncEvent struct {
 	Comment map[string]any `json:"comment,omitempty"`
 }
 
+// Desktop catalogs can contain ISBN notes or multiple edition identifiers that
+// predate cloud validation. Preserve those values during sync; ISBN lookup and
+// duplicate matching still validate ISBNs before using them.
+func validateSyncedBook(b *Book) error {
+	if b.Metadata == nil {
+		b.Metadata = map[string]any{}
+	}
+	rawISBN, hasISBN := b.Metadata["isbn"]
+	if hasISBN {
+		if normalized, err := isbnCode(textValue(rawISBN)); err == nil {
+			b.Metadata["isbn"] = normalized
+		} else {
+			delete(b.Metadata, "isbn")
+			validationErr := validateBook(b)
+			b.Metadata["isbn"] = rawISBN
+			return validationErr
+		}
+	}
+	return validateBook(b)
+}
+
 func syncCover(raw string) ([]byte, error) {
 	if raw == "" {
 		return nil, nil
@@ -215,7 +236,7 @@ func (s *Server) syncCatalog(w http.ResponseWriter, r *http.Request) error {
 				b.Metadata["_stored_cover"] = true
 			}
 			if !change.Deleted {
-				if err = validateBook(&b); err != nil {
+				if err = validateSyncedBook(&b); err != nil {
 					return err
 				}
 			}
