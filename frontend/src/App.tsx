@@ -86,6 +86,10 @@ export default function App() {
   };
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refreshSeconds, setRefreshSeconds] = useState(() => {
+    const saved = Number(window.localStorage.getItem("catalog-refresh-seconds"));
+    return [0, 15, 30, 60, 300].includes(saved) || (saved >= 60 && saved <= 86400) ? saved : 15;
+  });
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
   const [selected, setSelected] = useState<Book | null>(null);
@@ -238,13 +242,27 @@ export default function App() {
     const refresh = () => {
       if (!document.hidden) reload(catalog).catch(() => {});
     };
-    const timer = window.setInterval(refresh, 15000);
-    window.addEventListener("focus", refresh);
+    const timer = refreshSeconds > 0 ? window.setInterval(refresh, refreshSeconds * 1000) : undefined;
+    if (refreshSeconds > 0) window.addEventListener("focus", refresh);
     return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", refresh);
+      if (timer !== undefined) clearInterval(timer);
+      if (refreshSeconds > 0) window.removeEventListener("focus", refresh);
     };
-  }, [catalog, reload]);
+  }, [catalog, reload, refreshSeconds]);
+  useEffect(() => {
+    if (!selected || refreshSeconds === 0) return;
+    const refreshComments = () => {
+      if (document.hidden || writing.current) return;
+      api<Comment[]>(`${base}/books/${selected.id}/comments`)
+        .then(setComments)
+        .catch(() => {});
+    };
+    const timer = window.setInterval(refreshComments, refreshSeconds * 1000);
+    return () => clearInterval(timer);
+  }, [selected, refreshSeconds, api]);
+  useEffect(() => {
+    window.localStorage.setItem("catalog-refresh-seconds", String(refreshSeconds));
+  }, [refreshSeconds]);
   useEffect(() => {
     if (
       !editing &&
@@ -388,6 +406,19 @@ export default function App() {
           </span>
         </div>
         <div className="actions">
+          <label className="refresh-setting">
+            Atualizar
+            <select aria-label="Intervalo de atualização automática" value={[0, 15, 30, 60, 300].includes(refreshSeconds) ? refreshSeconds : -1} onChange={(e) => setRefreshSeconds(Number(e.target.value) === -1 ? 600 : Number(e.target.value))}>
+              <option value={0}>Manual</option>
+              <option value={15}>15 segundos</option>
+              <option value={30}>30 segundos</option>
+              <option value={60}>1 minuto</option>
+              <option value={300}>5 minutos</option>
+              <option value={-1}>Personalizado</option>
+            </select>
+            {refreshSeconds > 0 && ![15, 30, 60, 300].includes(refreshSeconds) && <input aria-label="Intervalo personalizado em minutos" type="number" min={1} max={1440} value={Math.round(refreshSeconds / 60)} onChange={(e) => { const minutes = Number(e.target.value); if (minutes >= 1 && minutes <= 1440) setRefreshSeconds(minutes * 60); }} />}
+          </label>
+          <button disabled={!catalog || loading} onClick={() => Promise.all([reload(catalog), selected ? api<Comment[]>(`${base}/books/${selected.id}/comments`).then(setComments) : Promise.resolve()]).catch((e) => setError(e.message))}>Atualizar agora</button>
           {account?.admin && (
             <button onClick={() => openPanel("admin")}>Administração</button>
           )}
@@ -812,7 +843,7 @@ export default function App() {
             <h2 id="notes-title">{selected.title}</h2>
             {comments.length ? (
               comments.map((c) => (
-                <article className="comment" key={c.id}>
+                <article className={`comment ${c.author.email === account?.email ? "own" : ""}`} key={c.id}>
                   <strong>{c.author.name}</strong>
                   <small>
                     {c.author.email} ·{" "}

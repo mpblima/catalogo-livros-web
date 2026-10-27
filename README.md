@@ -15,7 +15,7 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 - Caminho físico dos arquivos digitais como texto. Sem upload ou leitor de PDF/EPUB na nuvem; a posição privada do leitor permanece no desktop.
 - Compartilhamento por e-mail verificado com até 50 convidados por catálogo. Contas universais e administradores não têm esse limite. Acesso compartilhado permite consultar, cadastrar, editar e anotar; somente o proprietário gerencia convidados.
 - Convites numa fila persistente, com envio pelo Sender, retentativas e expiração de pendências. A inclusão só fica disponível quando o provedor de e-mail está configurado.
-- Anotações compartilhadas com autor e data atribuídos pelo servidor. Anotações são acrescentadas, não sobrescritas coletivamente.
+- Anotações compartilhadas em histórico de conversa com autor e data atribuídos pelo servidor. Revogar o compartilhamento bloqueia acesso futuro, sem apagar o histórico do catálogo.
 - Administração: ativar/suspender acessos, conceder uso ilimitado e adicionar/trocar administradores. O último administrador ativo não pode ser removido. Administração não dá acesso a catálogos privados de outras pessoas.
 - Exportação dos dados da conta/catálogos próprios e registro de solicitação de exclusão para análise administrativa.
 
@@ -23,6 +23,7 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 
 - Árvore de categorias com descendentes e gestão de categorias físicas; agrupamento de edições/amostras sem excluir arquivos.
 - Sincronização desktop ↔ nuvem de todos os campos dos livros, inclusive metadados extras, capas, categorias, relações e anotações. Arquivos digitais e estado privado do leitor não são enviados.
+- Atualização automática ajustável na web (15 s, 30 s, 1 min, 5 min ou intervalo próprio de 1 min a 24 h), atualização manual e sincronização desktop configurável de 1 minuto a 24 horas ou manual. A preferência web fica neste navegador; a do desktop fica no perfil SQLite.
 - Associação autorizada no navegador, token por dispositivo, revogação, lotes idempotentes, conflitos com escolha explícita e retomada após falhas.
 - Anotações assinadas pelo servidor com nome, data e origem; mudanças do campo de notas também geram histórico atribuído. Remover um convidado bloqueia novos acessos ao catálogo, inclusive com ETag antigo.
 - Exclusão/anonimização em duas fases com proteção do último administrador, retry do provedor e aviso de privacidade com contato público.

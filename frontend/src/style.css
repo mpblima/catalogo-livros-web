@@ -77,6 +77,18 @@ p {
   gap: 12px;
   align-items: center;
 }
+.refresh-setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.refresh-setting select {
+  width: auto;
+  padding: 8px;
+  font-size: 11px;
+}
 .brand {
   display: flex;
   gap: 13px;
@@ -314,8 +326,18 @@ form {
   gap: 14px;
 }
 .comment {
-  border-bottom: 1px solid var(--line);
-  padding: 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 12px 3px;
+  background: #fffefa;
+  padding: 13px 16px;
+  margin: 12px 0;
+  max-width: min(82%, 720px);
+}
+.comment.own {
+  margin-left: auto;
+  background: #e8efe3;
+  border-color: #d3dfce;
+  border-radius: 12px 12px 3px 12px;
 }
 .comment small {
   display: block;
