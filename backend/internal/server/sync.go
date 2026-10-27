@@ -76,6 +76,13 @@ func validateSyncedBook(b *Book) error {
 	if b.Metadata == nil {
 		b.Metadata = map[string]any{}
 	}
+	if strings.TrimSpace(b.Title) == "" {
+		fallback := strings.TrimSpace(b.Filename)
+		if fallback == "" || len(fallback) > 500 {
+			fallback = "Livro sem título"
+		}
+		b.Title = fallback
+	}
 	rawISBN, hasISBN := b.Metadata["isbn"]
 	invalidISBN := false
 	if hasISBN {

@@ -36,9 +36,13 @@ func TestValidateSyncedBookPreservesLegacyISBN(t *testing.T) {
 	if err := validateSyncedBook(&book); err != nil || book.Metadata["isbn"] != "9780134685991" {
 		t.Fatalf("valid ISBN was not normalized: metadata=%v err=%v", book.Metadata, err)
 	}
-	book = Book{Title: "", Kind: "physical", Metadata: map[string]any{"isbn": "legacy value", "pages": 0}}
+	book = Book{Title: " ", Filename: "book-without-title.pdf", Kind: "digital", Metadata: map[string]any{}}
+	if err := validateSyncedBook(&book); err != nil || book.Title != "book-without-title.pdf" {
+		t.Fatalf("sync did not use the filename for a blank title: title=%q err=%v", book.Title, err)
+	}
+	book = Book{Title: "", Kind: "invalid", Metadata: map[string]any{"isbn": "legacy value", "pages": 0}}
 	if err := validateSyncedBook(&book); err == nil {
-		t.Fatal("sync accepted a book with an empty title")
+		t.Fatal("sync accepted a book with an invalid kind")
 	}
 	if got := book.Metadata["isbn"]; got != "legacy value" {
 		t.Fatalf("validation failure lost legacy ISBN: got %v", got)
