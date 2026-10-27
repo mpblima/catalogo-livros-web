@@ -2,10 +2,10 @@
   border-top: 1px solid var(--line);
   margin-top: 25px;
   padding-top: 20px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .category-tree h3 {
-  font-size: 12px;
+  font-size: 13px;
   margin: 0 0 10px;
 }
 .category-tree ul {
@@ -48,13 +48,13 @@
 }
 .category-management {
   margin-top: 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .book-versions {
   margin: 12px 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 .book-versions select {
-  font-size: 12px;
+  font-size: 13px;
   margin-top: 6px;
 }

@@ -45,7 +45,7 @@
   display: block;
   margin-top: 9px;
   color: #4c5f50;
-  font-size: 12px;
+  font-size: 13px;
 }
 .editor-tabs {
   display: flex;
@@ -94,7 +94,7 @@
   padding-left: 22px;
 }
 .editor-aside legend {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   margin: 12px 0;
 }
@@ -128,7 +128,7 @@
   align-items: center;
 }
 .editor-footer > span {
-  font-size: 12px;
+  font-size: 13px;
   color: #526358;
 }
 .lookup-status {
@@ -204,7 +204,7 @@
 .cover-options-panel a {
   display: block;
   color: #173f32;
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 12px;
   text-underline-offset: 3px;
 }

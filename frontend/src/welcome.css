@@ -21,7 +21,7 @@
   font-size: 22px;
 }
 .welcome-nav a {
-  font-size: 13px;
+  font-size: 14px;
   color: #d1ddc8;
   text-underline-offset: 6px;
 }
@@ -47,7 +47,7 @@
   margin: 20px 0 25px;
 }
 .welcome .eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1.7px;
   color: #c9d991;
 }
@@ -120,7 +120,7 @@
   color: #eff1df;
 }
 .welcome .welcome-features p {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.75;
   color: #c4d2c4;
   margin: 0;
@@ -132,7 +132,7 @@
   display: flex;
   gap: 20px;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13px;
   color: #b4c6b6;
 }
 @media (min-width: 1600px) {
@@ -151,7 +151,7 @@
     gap: 20px;
   }
   .welcome .welcome-copy > p:not(.eyebrow) {
-    font-size: 15px;
+    font-size: 16px;
   }
   .welcome-nav .brand {
     font-size: 20px;
@@ -183,7 +183,7 @@
     max-width: 480px;
   }
   .welcome .eyebrow {
-    font-size: 9px;
+    font-size: 10px;
     letter-spacing: 1px;
   }
   .welcome-image {
