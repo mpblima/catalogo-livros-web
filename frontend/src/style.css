@@ -396,6 +396,55 @@ form {
   font-size: 11px;
   padding: 7px;
 }
+.admin-users {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 24px;
+}
+.admin-user {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffefa;
+}
+.admin-user summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 13px;
+  cursor: pointer;
+}
+.admin-user summary > span:last-child {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+.admin-user summary small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.admin-user-detail {
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+}
+.admin-user-detail h4 {
+  margin: 16px 0 6px;
+}
+.admin-user-detail p {
+  margin: 7px 0;
+  font-size: 13px;
+}
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.admin-user-actions .danger {
+  border-color: #d7aaa2;
+}
 .error {
   background: #fbe7df;
   color: #8a3028;

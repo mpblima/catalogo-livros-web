@@ -16,7 +16,7 @@ Frontend React/TypeScript na Vercel, API Go no Render, PostgreSQL no Supabase e 
 - Compartilhamento por e-mail verificado com até 50 convidados por catálogo. Contas universais e administradores não têm esse limite. Acesso compartilhado permite consultar, cadastrar, editar e anotar; somente o proprietário gerencia convidados.
 - Convites numa fila persistente, com envio pelo Sender, retentativas e expiração de pendências. A inclusão só fica disponível quando o provedor de e-mail está configurado.
 - Anotações compartilhadas em histórico de conversa com autor e data atribuídos pelo servidor. Revogar o compartilhamento bloqueia acesso futuro, sem apagar o histórico do catálogo.
-- Administração: ativar/suspender acessos, conceder uso ilimitado e adicionar/trocar administradores. O último administrador ativo não pode ser removido. Administração não dá acesso a catálogos privados de outras pessoas.
+- Administração: listar contas do Clerk, consultar status e último acesso, ver proprietários, convidados e catálogos compartilhados, suspender acesso ao serviço ou excluir uma conta com confirmação. Também permite conceder uso ilimitado e adicionar/trocar administradores. A exclusão remove os catálogos próprios e anonimiza a autoria preservada em catálogos alheios; o último administrador ativo não pode ser removido. Administração não dá acesso aos livros privados.
 - Exportação dos dados da conta/catálogos próprios e registro de solicitação de exclusão para análise administrativa.
 
 ## Operação e sincronização

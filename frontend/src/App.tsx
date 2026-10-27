@@ -35,6 +35,22 @@ type Grant = {
   universal: boolean;
   admin: boolean;
 };
+type ManagedCatalog = { id: string; name: string; owner_email?: string; members?: string[] };
+type ManagedUser = {
+  id: string;
+  email: string;
+  name: string;
+  created_at: number;
+  last_sign_in_at: number | null;
+  banned: boolean;
+  locked: boolean;
+  enabled: boolean;
+  universal: boolean;
+  admin: boolean;
+  access_granted: boolean;
+  owned_catalogs: ManagedCatalog[];
+  shared_catalogs: ManagedCatalog[];
+};
 const blank = (kind: Book["kind"] = "physical"): Book => ({
   id: "",
   title: "",
@@ -102,6 +118,7 @@ export default function App() {
   >([]);
   const [members, setMembers] = useState<string[]>([]);
   const [grants, setGrants] = useState<Grant[]>([]);
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [email, setEmail] = useState("");
   const [universal, setUniversal] = useState(false);
   const [admin, setAdmin] = useState(false);
@@ -411,6 +428,7 @@ export default function App() {
       else {
         setGrants(await api<Grant[]>("/admin/access"));
         setPrivacy(await api<typeof privacy>("/admin/privacy"));
+        setManagedUsers(await api<ManagedUser[]>("/admin/users"));
       }
     });
   if (!isLoaded)
@@ -941,7 +959,7 @@ export default function App() {
             <p>
               {panel === "members"
                 ? "Adicione o e-mail usado pela pessoa no cadastro. Ela receberá um convite por e-mail para acessar os livros e as anotações deste catálogo."
-                : "Contas universais têm uso ilimitado. Cada catálogo permanece privado."}
+                : "Consulte contas e compartilhamentos, suspenda acessos ou exclua uma conta. O painel mostra relações entre catálogos, sem abrir livros ou anotações. Contas universais têm uso ilimitado."}
             </p>
             <form
               onSubmit={(e) => {
@@ -997,8 +1015,7 @@ export default function App() {
               </button>
             </form>
             <ul className="access-list">
-              {panel === "members"
-                ? members.map((m) => (
+              {panel === "members" && members.map((m) => (
                     <li key={m}>
                       <span>{m}</span>
                       <button
@@ -1016,45 +1033,69 @@ export default function App() {
                         Remover
                       </button>
                     </li>
-                  ))
-                : grants.map((g) => (
-                    <li key={g.email}>
-                      <span>
-                        {g.email}
-                        <small>
-                          {g.admin ? "Administrador · " : ""}
-                          {g.universal ? "Ilimitado · " : ""}
-                          {g.enabled ? "Ativo" : "Suspenso"}
-                        </small>
-                      </span>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          act(async () => {
-                            await api("/admin/access", "PUT", {
-                              ...g,
-                              enabled: !g.enabled,
-                            });
-                            setGrants(await api<Grant[]>("/admin/access"));
-                          })
-                        }
-                      >
-                        {g.enabled ? "Suspender" : "Ativar"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEmail(g.email);
-                          setAdmin(g.admin);
-                          setUniversal(g.universal);
-                        }}
-                      >
-                        Editar
-                      </button>
-                    </li>
                   ))}
             </ul>
             {panel === "admin" && (
               <section>
+                <h3>Contas e catálogos</h3>
+                {managedUsers.length ? (
+                  <div className="admin-users">
+                    {managedUsers.map((u) => (
+                      <details className="admin-user" key={u.id}>
+                        <summary>
+                          <span>
+                            <strong>{u.name}</strong>
+                            <small>{u.email} · {u.banned || u.locked ? "Bloqueada no Clerk" : u.enabled ? "Acesso ativo" : "Acesso suspenso"}{u.admin ? " · Administrador" : ""}</small>
+                          </span>
+                          <span>{u.owned_catalogs.length} próprios · {u.shared_catalogs.length} recebidos</span>
+                        </summary>
+                        <div className="admin-user-detail">
+                          <p>Criada: {new Date(u.created_at).toLocaleString("pt-BR")}</p>
+                          <p>Último acesso: {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString("pt-BR") : "Ainda não entrou"}</p>
+                          <h4>Catálogos próprios</h4>
+                          {u.owned_catalogs.length ? u.owned_catalogs.map((c) => (
+                            <p key={c.id}><strong>{c.name}</strong><br />Compartilhado com: {c.members?.length ? c.members.join(", ") : "ninguém"}</p>
+                          )) : <p>Nenhum.</p>}
+                          <h4>Catálogos compartilhados com a conta</h4>
+                          {u.shared_catalogs.length ? u.shared_catalogs.map((c) => (
+                            <p key={c.id}><strong>{c.name}</strong><br />Responsável: {c.owner_email}</p>
+                          )) : <p>Nenhum.</p>}
+                          <div className="admin-user-actions">
+                            <button disabled={busy || u.banned || u.locked || (u.admin && grants.filter((g) => g.admin && g.enabled).length <= 1)} onClick={() => act(async () => {
+                              await api("/admin/access", "PUT", { email: u.email, enabled: !u.enabled, universal: u.universal, admin: u.admin });
+                              setGrants(await api<Grant[]>("/admin/access"));
+                              setManagedUsers(await api<ManagedUser[]>("/admin/users"));
+                            })}>{u.enabled ? "Suspender acesso" : "Reativar acesso"}</button>
+                            <button className="danger" disabled={busy || u.id === userId} onClick={() => {
+                              const confirmation = window.prompt(`A exclusão remove os catálogos próprios de ${u.email}, revoga o acesso recebido e apaga a conta no Clerk. Anotações em catálogos de outras pessoas permanecem sem identificação. Digite EXCLUIR para confirmar.`);
+                              if (confirmation === "EXCLUIR") act(async () => {
+                                const request = await api<{ request_id: string }>(`/admin/users/${encodeURIComponent(u.id)}/erasure`, "POST", { confirmation });
+                                await api(`/admin/privacy/${request.request_id}/complete`, "POST", { confirmation });
+                                setManagedUsers(await api<ManagedUser[]>("/admin/users"));
+                                setGrants(await api<Grant[]>("/admin/access"));
+                                setPrivacy(await api<typeof privacy>("/admin/privacy"));
+                              });
+                            }}>Excluir conta</button>
+                          </div>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                ) : <p>Nenhuma conta encontrada.</p>}
+                <h3>Acessos e permissões</h3>
+                <ul className="access-list">
+                  {grants.map((g) => (
+                    <li key={g.email}>
+                      <span>{g.email}<small>{g.admin ? "Administrador · " : ""}{g.universal ? "Ilimitado · " : ""}{g.enabled ? "Ativo" : "Suspenso"}</small></span>
+                      <button disabled={busy} onClick={() => act(async () => {
+                        await api("/admin/access", "PUT", { ...g, enabled: !g.enabled });
+                        setGrants(await api<Grant[]>("/admin/access"));
+                        setManagedUsers(await api<ManagedUser[]>("/admin/users"));
+                      })}>{g.enabled ? "Suspender" : "Ativar"}</button>
+                      <button onClick={() => { setEmail(g.email); setAdmin(g.admin); setUniversal(g.universal); }}>Editar</button>
+                    </li>
+                  ))}
+                </ul>
                 <h3>Solicitações de privacidade</h3>
                 {error && (
                   <p className="error" role="alert">

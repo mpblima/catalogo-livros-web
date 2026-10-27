@@ -26,6 +26,7 @@ type Server struct {
 	DB             *pgxpool.Pool
 	LookupIdentity func(context.Context, string) (Identity, error)
 	DeleteIdentity func(context.Context, string) error
+	ListIdentities func(context.Context) ([]AdminIdentity, error)
 	Auth           Authenticator
 	Config         Config
 	Mailer         Mailer
@@ -101,7 +102,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /device/pair/{pair}/token", s.publicDevice(s.exchangePair))
 	api := http.NewServeMux()
 	api.HandleFunc("POST /api/devices/pair/{pair}/approve", route(s.approvePair))
- api.HandleFunc("GET /api/devices/pair/{pair}",route(s.pairInfo))
+	api.HandleFunc("GET /api/devices/pair/{pair}", route(s.pairInfo))
 	api.HandleFunc("GET /api/devices", route(s.devices))
 	api.HandleFunc("DELETE /api/devices/{device}", route(s.revokeDevice))
 	api.HandleFunc("GET /api/me", route(s.me))
@@ -131,6 +132,8 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("DELETE /api/catalogs/{catalog}/members/{email}", route(s.removeMember))
 	api.HandleFunc("GET /api/admin/access", route(s.grants))
 	api.HandleFunc("PUT /api/admin/access", route(s.grant))
+	api.HandleFunc("GET /api/admin/users", route(s.adminUsers))
+	api.HandleFunc("POST /api/admin/users/{user}/erasure", route(s.requestAdminErasure))
 	mux.Handle("/api/", s.authenticate(api))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

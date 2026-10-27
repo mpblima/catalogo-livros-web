@@ -2,9 +2,188 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"html"
 	"net/http"
 )
+
+type AdminCatalog struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	OwnerEmail string   `json:"owner_email,omitempty"`
+	Members    []string `json:"members,omitempty"`
+}
+
+type AdminUser struct {
+	AdminIdentity
+	Enabled        bool           `json:"enabled"`
+	Universal      bool           `json:"universal"`
+	Admin          bool           `json:"admin"`
+	AccessGranted  bool           `json:"access_granted"`
+	OwnedCatalogs  []AdminCatalog `json:"owned_catalogs"`
+	SharedCatalogs []AdminCatalog `json:"shared_catalogs"`
+}
+
+func (s *Server) adminUsers(w http.ResponseWriter, r *http.Request) error {
+	actor := who(r)
+	if !actor.Admin {
+		return problem(403, "Acesso administrativo necessário.")
+	}
+	var active bool
+	if err := s.DB.QueryRow(r.Context(), `select exists(select 1 from catalog.access_grants where email=$1 and admin and enabled)`, actor.Email).Scan(&active); err != nil {
+		return err
+	}
+	if !active {
+		return problem(403, "Permissão administrativa revogada.")
+	}
+	identities := []AdminIdentity{}
+	if s.ListIdentities != nil {
+		var err error
+		identities, err = s.ListIdentities(r.Context())
+		if err != nil {
+			return problem(502, "Não foi possível consultar as contas do provedor de autenticação.")
+		}
+	}
+	type stored struct {
+		Email, Name               string
+		Enabled, Universal, Admin bool
+		AccessGranted             bool
+		Owned, Shared             []AdminCatalog
+	}
+	known := map[string]stored{}
+	rows, err := s.DB.Query(r.Context(), `select u.id,u.email,u.name,
+coalesce(g.enabled,$1),coalesce(g.universal,false),coalesce(g.admin,false),(g.email is not null),
+coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name,'members',coalesce((select jsonb_agg(m.email order by m.email) from catalog.members m where m.catalog_id=c.id),'[]'::jsonb)) order by c.created_at) from catalog.catalogs c where c.owner_id=u.id),'[]'::jsonb),
+coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'name',c.name,'owner_email',owner.email) order by c.created_at) from catalog.members m join catalog.catalogs c on c.id=m.catalog_id join catalog.users owner on owner.id=c.owner_id where m.email=u.email),'[]'::jsonb)
+from catalog.users u left join catalog.access_grants g on g.email=u.email order by u.created_at desc`, s.Config.AutoActivate)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var id, email, name string
+		var item stored
+		var owned, shared []byte
+		if err = rows.Scan(&id, &email, &name, &item.Enabled, &item.Universal, &item.Admin, &item.AccessGranted, &owned, &shared); err != nil {
+			rows.Close()
+			return err
+		}
+		item.Email, item.Name = email, name
+		if err = json.Unmarshal(owned, &item.Owned); err != nil {
+			rows.Close()
+			return err
+		}
+		if err = json.Unmarshal(shared, &item.Shared); err != nil {
+			rows.Close()
+			return err
+		}
+		known[id] = item
+	}
+	if err = rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	if s.ListIdentities == nil {
+		for id, item := range known {
+			identities = append(identities, AdminIdentity{ID: id, Email: item.Email, Name: item.Name})
+		}
+	}
+	out := make([]AdminUser, 0, len(identities))
+	for _, identity := range identities {
+		if identity.ID == "" || identity.Email == "" {
+			continue
+		}
+		var erased bool
+		if err = s.DB.QueryRow(r.Context(), `select exists(select 1 from catalog.erased_accounts where user_id=$1)`, identity.ID).Scan(&erased); err != nil {
+			return err
+		}
+		if erased {
+			continue
+		}
+		item, exists := known[identity.ID]
+		user := AdminUser{AdminIdentity: identity, Enabled: s.Config.AutoActivate, OwnedCatalogs: []AdminCatalog{}, SharedCatalogs: []AdminCatalog{}}
+		if exists {
+			user.Email, user.Name = item.Email, item.Name
+			user.Enabled, user.Universal, user.Admin, user.AccessGranted = item.Enabled, item.Universal, item.Admin, item.AccessGranted
+			user.OwnedCatalogs, user.SharedCatalogs = item.Owned, item.Shared
+		}
+		if identity.Banned || identity.Locked {
+			user.Enabled = false
+		}
+		out = append(out, user)
+	}
+	respond(w, 200, out)
+	return nil
+}
+
+func (s *Server) requestAdminErasure(w http.ResponseWriter, r *http.Request) error {
+	actor := who(r)
+	if !actor.Admin {
+		return problem(403, "Acesso administrativo necessário.")
+	}
+	if actor.ID == r.PathValue("user") {
+		return problem(409, "Entre com outro administrador para excluir sua própria conta.")
+	}
+	var body struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if err := decode(w, r, &body); err != nil {
+		return err
+	}
+	if body.Confirmation != "EXCLUIR" {
+		return problem(400, "Confirme a exclusão digitando EXCLUIR.")
+	}
+	var active bool
+	if err := s.DB.QueryRow(r.Context(), `select exists(select 1 from catalog.access_grants where email=$1 and admin and enabled)`, actor.Email).Scan(&active); err != nil {
+		return err
+	}
+	if !active {
+		return problem(403, "Permissão administrativa revogada.")
+	}
+	var targetEmail, targetName string
+	if s.ListIdentities != nil {
+		identities, err := s.ListIdentities(r.Context())
+		if err != nil {
+			return problem(502, "Não foi possível consultar as contas do provedor de autenticação.")
+		}
+		found := false
+		for _, identity := range identities {
+			if identity.ID == r.PathValue("user") {
+				targetEmail, targetName, found = identity.Email, identity.Name, true
+				break
+			}
+		}
+		if !found {
+			return problem(404, "Conta não encontrada no provedor de autenticação.")
+		}
+	} else if err := s.DB.QueryRow(r.Context(), `select email,name from catalog.users where id=$1`, r.PathValue("user")).Scan(&targetEmail, &targetName); err != nil {
+		return problem(404, "Conta não encontrada.")
+	}
+	targetEmail, err := normalizedEmail(targetEmail)
+	if err != nil {
+		return problem(409, "A conta não tem um e-mail válido para remoção administrativa.")
+	}
+	tx, err := s.DB.Begin(r.Context())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(r.Context())
+	if _, err = tx.Exec(r.Context(), `insert into catalog.users(id,email,name) values($1,$2,$3) on conflict(id) do update set email=excluded.email,name=excluded.name`, r.PathValue("user"), targetEmail, targetName); err != nil {
+		return err
+	}
+	var requestID string
+	if err = tx.QueryRow(r.Context(), `insert into catalog.privacy_requests(user_id,kind) values($1,'erasure') on conflict(user_id,kind) do update set status=case when catalog.privacy_requests.status='completed' then 'pending' else catalog.privacy_requests.status end returning id::text`, r.PathValue("user")).Scan(&requestID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(r.Context(), `insert into catalog.audit_events(actor_id,action,resource_id) values($1,'account.erase.request',$2)`, actor.ID, targetEmail); err != nil {
+		return err
+	}
+	if err = tx.Commit(r.Context()); err != nil {
+		return err
+	}
+	respond(w, 202, map[string]string{"request_id": requestID})
+	return nil
+}
 
 func (s *Server) members(w http.ResponseWriter, r *http.Request) error {
 	if err := s.access(r, true); err != nil {

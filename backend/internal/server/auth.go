@@ -9,6 +9,16 @@ import (
 	"strings"
 )
 
+type AdminIdentity struct {
+	ID           string `json:"id"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	CreatedAt    int64  `json:"created_at"`
+	LastSignInAt *int64 `json:"last_sign_in_at"`
+	Banned       bool   `json:"banned"`
+	Locked       bool   `json:"locked"`
+}
+
 type Identity struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
@@ -74,4 +84,48 @@ func DeleteClerkIdentity(ctx context.Context, id string) error {
 		return nil
 	}
 	return err
+}
+
+func ListClerkIdentities(ctx context.Context) ([]AdminIdentity, error) {
+	pageSize := int64(500)
+	var out []AdminIdentity
+	for offset := int64(0); ; offset += pageSize {
+		page, err := user.List(ctx, &user.ListParams{ListParams: clerk.ListParams{Limit: &pageSize, Offset: &offset}})
+		if err != nil {
+			return nil, err
+		}
+		for _, u := range page.Users {
+			if u == nil {
+				continue
+			}
+			email := ""
+			if u.PrimaryEmailAddressID != nil {
+				for _, candidate := range u.EmailAddresses {
+					if candidate != nil && candidate.ID == *u.PrimaryEmailAddressID {
+						email = strings.ToLower(candidate.EmailAddress)
+						break
+					}
+				}
+			}
+			if email == "" && len(u.EmailAddresses) > 0 && u.EmailAddresses[0] != nil {
+				email = strings.ToLower(u.EmailAddresses[0].EmailAddress)
+			}
+			name := strings.TrimSpace(strings.TrimSpace(pointerValue(u.FirstName)) + " " + strings.TrimSpace(pointerValue(u.LastName)))
+			if name == "" {
+				name = email
+			}
+			out = append(out, AdminIdentity{ID: u.ID, Email: email, Name: name, CreatedAt: u.CreatedAt, LastSignInAt: u.LastSignInAt, Banned: u.Banned, Locked: u.Locked})
+		}
+		if int64(len(page.Users)) < pageSize || int64(len(out)) >= page.TotalCount {
+			break
+		}
+	}
+	return out, nil
+}
+
+func pointerValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
