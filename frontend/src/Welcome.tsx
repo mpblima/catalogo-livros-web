@@ -32,6 +32,9 @@ export function Welcome() {
                 <button className="welcome-signin">Já tenho conta</button>
               </SignInButton>
             </div>
+            <a className="desktop-download" href="https://github.com/mpblima/catalogo-livros/releases/latest" target="_blank" rel="noreferrer">
+              Baixar versão para desktop <span>Windows, macOS e Linux · ver versão e instaladores</span>
+            </a>
           </div>
           <div className="welcome-image">
             <img
@@ -68,6 +71,10 @@ export function Welcome() {
               Convide outras pessoas para conhecer seu catálogo e trocar
               anotações.
             </p>
+          </div>
+          <div>
+            <h2>Web e desktop, juntos.</h2>
+            <p>Consulte seu catálogo no navegador e mantenha a versão desktop no computador para organizar arquivos digitais e ler seus livros localmente.</p>
           </div>
         </section>
         <div className="welcome-foot">

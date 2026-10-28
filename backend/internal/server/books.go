@@ -42,6 +42,8 @@ type bookPage struct {
 	Groups int    `json:"groups"`
 	Counts struct {
 		All       int `json:"all"`
+		Physical  int `json:"physical"`
+		Digital   int `json:"digital"`
 		Favorites int `json:"favorites"`
 		Reading   int `json:"reading"`
 	} `json:"counts"`
@@ -180,7 +182,7 @@ select (select count(*) from filtered),(select count(*) from group_roots),coales
 			return err
 		}
 		out := bookPage{Items: []Book{}, Total: total, Offset: offset, Limit: limit, Groups: groups}
-		if err = s.DB.QueryRow(r.Context(), `select count(*),count(*) filter(where favorite),count(*) filter(where reading) from catalog.books where catalog_id=$1 and deleted_at is null and ($2='' or kind=$2)`, r.PathValue("catalog"), kind).Scan(&out.Counts.All, &out.Counts.Favorites, &out.Counts.Reading); err != nil {
+		if err = s.DB.QueryRow(r.Context(), `select count(*),count(*) filter(where kind='physical'),count(*) filter(where kind='digital'),count(*) filter(where favorite and ($2='' or kind=$2)),count(*) filter(where reading and ($2='' or kind=$2)) from catalog.books where catalog_id=$1 and deleted_at is null`, r.PathValue("catalog"), kind).Scan(&out.Counts.All, &out.Counts.Physical, &out.Counts.Digital, &out.Counts.Favorites, &out.Counts.Reading); err != nil {
 			return err
 		}
 		rows, err := s.DB.Query(r.Context(), `select `+bookColumns+` from catalog.books where catalog_id=$1 and id=any($2::uuid[]) and deleted_at is null order by lower(title),id`, r.PathValue("catalog"), ids)

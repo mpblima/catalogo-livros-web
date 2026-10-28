@@ -12,6 +12,8 @@ type Props = {
   onChange: (book: Book) => void;
   onClose: () => void;
   onSave: (book: Book) => void;
+  batchMode?: boolean;
+  onBatchModeChange?: (enabled: boolean) => void;
   onDelete: () => void;
   lookup: (isbn: string) => Promise<Book>;
 };
@@ -61,6 +63,8 @@ export function BookEditor({
   onChange,
   onClose,
   onSave,
+  batchMode = false,
+  onBatchModeChange = () => {},
   onDelete,
   lookup,
 }: Props) {
@@ -579,6 +583,7 @@ export function BookEditor({
           <div className="editor-footer">
             <span>Os dados só são gravados ao salvar.</span>
             <div className="actions">
+              {!book.id && <label className="check"><input type="checkbox" checked={batchMode} onChange={(e) => onBatchModeChange(e.target.checked)} /> Cadastro em lote</label>}
               <button type="button" onClick={onClose}>
                 Cancelar
               </button>

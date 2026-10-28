@@ -90,6 +90,23 @@
 .welcome .actions button:active {
   transform: translateY(1px);
 }
+.desktop-download {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 24px;
+  color: #e4edc4;
+  font-weight: 600;
+  text-underline-offset: 5px;
+}
+.desktop-download span {
+  color: #b8cbb8;
+  font-size: 12px;
+  font-weight: 400;
+}
+.desktop-download:hover {
+  color: #fff;
+}
 .welcome-image {
   border-radius: 8px;
   overflow: hidden;
@@ -105,7 +122,7 @@
 .welcome-features {
   scroll-margin-top: 25px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 40px;
   padding: 30px 0 35px;
   border-top: 1px solid #365247;
@@ -148,6 +165,7 @@
     font-size: clamp(34px, 4.6vw, 48px);
   }
   .welcome-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
   }
   .welcome .welcome-copy > p:not(.eyebrow) {

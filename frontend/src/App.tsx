@@ -74,7 +74,7 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookTotal, setBookTotal] = useState(0);
   const [bookGroupTotal, setBookGroupTotal] = useState(0);
-  const [bookCounts, setBookCounts] = useState({ all: 0, favorites: 0, reading: 0 });
+  const [bookCounts, setBookCounts] = useState({ all: 0, physical: 0, digital: 0, favorites: 0, reading: 0 });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [shelf, setShelf] = useState("all");
@@ -107,6 +107,7 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
+  const [batchMode, setBatchMode] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
   const [bookPage, setBookPage] = useState(1);
   const [bookRefresh, setBookRefresh] = useState(0);
@@ -119,6 +120,8 @@ export default function App() {
   const [members, setMembers] = useState<string[]>([]);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
+  const [managedUserPage, setManagedUserPage] = useState(1);
+  const [managedUserQuery, setManagedUserQuery] = useState("");
   const [email, setEmail] = useState("");
   const [universal, setUniversal] = useState(false);
   const [admin, setAdmin] = useState(false);
@@ -225,7 +228,7 @@ export default function App() {
       const epoch = readEpoch.current;
       const request = (async () => {
         const [result, paths, links] = await Promise.all([
-          api<{ items: Book[]; total: number; groups: number; counts: typeof bookCounts }>(`/catalogs/${id}/books?${params}`),
+          api<{ items: Book[]; total: number; groups: number; counts: Partial<typeof bookCounts> }>(`/catalogs/${id}/books?${params}`),
           api<string[]>(`/catalogs/${id}/categories`),
           api<Relation[]>(`/catalogs/${id}/relations`),
         ]);
@@ -238,7 +241,7 @@ export default function App() {
           setBooks(result.items);
           setBookTotal(result.total);
           setBookGroupTotal(result.groups);
-          setBookCounts(result.counts);
+          setBookCounts({ all: 0, physical: 0, digital: 0, favorites: 0, reading: 0, ...result.counts });
           setCategoryPaths(paths);
           setRelations(links);
         }
@@ -256,7 +259,7 @@ export default function App() {
     setBooks([]);
     setBookTotal(0);
     setBookGroupTotal(0);
-    setBookCounts({ all: 0, favorites: 0, reading: 0 });
+    setBookCounts({ all: 0, physical: 0, digital: 0, favorites: 0, reading: 0 });
     setCategoryPaths([]);
     setRelations([]);
     setCategoryManager(false);
@@ -385,6 +388,9 @@ export default function App() {
   const bookGroups = groupBooks(filtered, relations);
   const pageCount = Math.max(1, Math.ceil(bookGroupTotal / 30));
   const visibleGroups = bookGroups;
+  const filteredManagedUsers = managedUsers.filter((u) =>
+    `${u.name} ${u.email}`.toLocaleLowerCase("pt-BR").includes(managedUserQuery.trim().toLocaleLowerCase("pt-BR")),
+  );
   useEffect(() => setBookPage(1), [catalog, kind, category, shelf, query]);
   useEffect(() => setBookPage((page) => Math.min(page, pageCount)), [pageCount]);
   const toggle = (b: Book, field: "favorite" | "reading") =>
@@ -413,7 +419,7 @@ export default function App() {
         draft,
       );
       if (kind && saved.kind !== kind) setKind(saved.kind);
-      setEditing(null);
+      setEditing(batchMode && !draft.id ? blank(saved.kind) : null);
       setCategoryPaths(await api<string[]>(`${base}/categories`));
       setRelations(await api<Relation[]>(`${base}/relations`));
       setBookRefresh((value) => value + 1);
@@ -422,6 +428,7 @@ export default function App() {
   const openPanel = (value: "members" | "admin") =>
     act(async () => {
       setEmail("");
+      if (value === "admin") { setManagedUserPage(1); setManagedUserQuery(""); }
       setPanel(value);
       if (value === "members")
         setMembers(await api<string[]>(`${base}/members`));
@@ -645,6 +652,7 @@ export default function App() {
                 <div className="banner-count">
                   <strong>{bookCounts.all}</strong>
                   <span>livros no seu acervo</span>
+                  <small>{bookCounts.physical} físicos · {bookCounts.digital} digitais</small>
                 </div>
               </section>
               <div className="filters">
@@ -851,6 +859,8 @@ export default function App() {
           onChange={setEditing}
           onClose={() => setEditing(null)}
           onSave={save}
+          batchMode={batchMode}
+          onBatchModeChange={setBatchMode}
           lookup={(isbn) =>
             api<Book>(`/books/lookup?isbn=${encodeURIComponent(isbn)}`)
           }
@@ -887,8 +897,14 @@ export default function App() {
             >
               ×
             </button>
-            <p className="eyebrow">ANOTAÇÕES COMPARTILHADAS</p>
+            <p className="eyebrow">ANOTAÇÕES</p>
             <h2 id="notes-title">{selected.title}</h2>
+            {String(selected.metadata.notes || "").trim() && (
+              <article className="comment own">
+                <strong>Anotação do exemplar</strong>
+                <p>{String(selected.metadata.notes)}</p>
+              </article>
+            )}
             {comments.length ? (
               comments.map((c) => (
                 <article className={`comment ${c.author.email === account?.email ? "own" : ""}`} key={c.id}>
@@ -1038,9 +1054,10 @@ export default function App() {
             {panel === "admin" && (
               <section>
                 <h3>Contas e catálogos</h3>
-                {managedUsers.length ? (
+                <input type="search" aria-label="Buscar contas por nome ou e-mail" placeholder="Buscar conta por nome ou e-mail…" value={managedUserQuery} onChange={(e) => { setManagedUserQuery(e.target.value); setManagedUserPage(1); }} />
+                {filteredManagedUsers.length ? (
                   <div className="admin-users">
-                    {managedUsers.map((u) => (
+                    {filteredManagedUsers.slice((managedUserPage - 1) * 10, managedUserPage * 10).map((u) => (
                       <details className="admin-user" key={u.id}>
                         <summary>
                           <span>
@@ -1082,6 +1099,11 @@ export default function App() {
                     ))}
                   </div>
                 ) : <p>Nenhuma conta encontrada.</p>}
+                {filteredManagedUsers.length > 10 && <nav className="catalog-pagination" aria-label="Paginação de contas">
+                  <button disabled={managedUserPage <= 1} onClick={() => setManagedUserPage((page) => Math.max(1, page - 1))}>Anterior</button>
+                  <span>Página {managedUserPage} de {Math.ceil(filteredManagedUsers.length / 10)} · {filteredManagedUsers.length} contas</span>
+                  <button disabled={managedUserPage >= Math.ceil(filteredManagedUsers.length / 10)} onClick={() => setManagedUserPage((page) => Math.min(Math.ceil(filteredManagedUsers.length / 10), page + 1))}>Próxima</button>
+                </nav>}
                 <h3>Acessos e permissões</h3>
                 <ul className="access-list">
                   {grants.map((g) => (
