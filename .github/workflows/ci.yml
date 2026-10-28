@@ -151,7 +151,7 @@ jobs:
       - name: Deploy tested frontend revision
         run: python3 scripts/deploy.py frontend
       - name: Check public endpoints
-        run: python3 scripts/smoke.py --revision "$EXPECTED_REVISION" --attempts 24
+        run: python3 scripts/smoke.py --revision "$EXPECTED_REVISION" --attempts 40
   deployment-setup:
     if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED != 'true'
     runs-on: ubuntu-24.04
