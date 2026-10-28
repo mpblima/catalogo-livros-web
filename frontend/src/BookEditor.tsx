@@ -448,20 +448,13 @@ export function BookEditor({
                     }
                   />
                 </label>
-                <label>
-                  Anotações do exemplar
-                  <textarea
-                    rows={6}
-                    value={String(book.metadata.notes || "")}
-                    onChange={(e) => meta("notes", e.target.value)}
-                  />
-                </label>
-                {Boolean(book.metadata.notes_author_name) && (
-                  <small>
-                    Última edição das anotações:{" "}
-                    {String(book.metadata.notes_author_name)}
-                  </small>
-                )}
+                <p className="editor-help">
+                  As anotações ficam em um único espaço por livro. Abra
+                  “Anotações” no catálogo para escrever e consultar as
+                  contribuições. Elas são privadas enquanto o catálogo não é
+                  compartilhado e passam a ser vistas pelos participantes
+                  quando você os convida.
+                </p>
               </fieldset>
               <fieldset
                 disabled={busy || searching}

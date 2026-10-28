@@ -445,6 +445,20 @@ export default function App() {
     return (
       <main className="setup">{error || "Carregando sua biblioteca…"}</main>
     );
+  const annotations: Comment[] = [...comments];
+  const legacyNote = String(selected?.metadata.notes || "").trim();
+  if (selected && legacyNote && !annotations.some((item) => item.body.trim() === legacyNote)) {
+    annotations.push({
+      id: `catalog-note-${selected.id}`,
+      body: legacyNote,
+      created_at: "",
+      origin: "catalog",
+      author: {
+        name: String(selected.metadata.notes_author_name || "Anotação do catálogo"),
+        email: String(selected.metadata.notes_author_email || ""),
+      },
+    });
+  }
   return (
     <div className="app">
       <header>
@@ -899,21 +913,13 @@ export default function App() {
             </button>
             <p className="eyebrow">ANOTAÇÕES</p>
             <h2 id="notes-title">{selected.title}</h2>
-            {String(selected.metadata.notes || "").trim() && (
-              <article className="comment own">
-                <strong>Anotação do exemplar</strong>
-                <p>{String(selected.metadata.notes)}</p>
-              </article>
-            )}
-            {comments.length ? (
-              comments.map((c) => (
+            {annotations.length ? (
+              annotations.map((c) => (
                 <article className={`comment ${c.author.email === account?.email ? "own" : ""}`} key={c.id}>
                   <strong>{c.author.name}</strong>
-                  <small>
-                    {c.author.email} ·{" "}
-                    {c.origin === "desktop" ? "Desktop" : "Web"} ·{" "}
-                    {new Date(c.created_at).toLocaleString("pt-BR")}
-                  </small>
+                  {(c.author.email || c.origin || c.created_at) && <small>
+                    {[c.author.email, c.origin === "desktop" ? "Desktop" : c.origin === "catalog" ? "Catálogo" : c.origin ? "Web" : "", c.created_at ? new Date(c.created_at).toLocaleString("pt-BR") : ""].filter(Boolean).join(" · ")}
+                  </small>}
                   <p>{c.body}</p>
                 </article>
               ))

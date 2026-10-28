@@ -151,7 +151,7 @@ func (s *Server) books(w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return err
 		}
-		const filter = `catalog_id=$1 and deleted_at is null and ($2='' or kind=$2) and ($3='' or category=$3 or left(category,length($3)+1)=$3||'/') and ($4='all' or ($4='favorites' and favorite) or ($4='reading' and reading)) and not exists(select 1 from unnest($5::text[]) term where position(term in translate(lower(concat_ws(' ',title,category,path,filename,metadata::text,summary)),'áàâãäåéèêëíìîïóòôõöúùûüçñ','aaaaaaeeeeiiiiooooouuuucn'))=0)`
+		const filter = `b.catalog_id=$1 and b.deleted_at is null and ($2='' or b.kind=$2) and ($3='' or b.category=$3 or left(b.category,length($3)+1)=$3||'/') and ($4='all' or ($4='favorites' and b.favorite) or ($4='reading' and b.reading)) and not exists(select 1 from unnest($5::text[]) term where position(term in translate(lower(concat_ws(' ',b.title,b.category,b.path,b.filename,b.metadata::text,b.summary)),'áàâãäåéèêëíìîïóòôõöúùûüçñ','aaaaaaeeeeiiiiooooouuuucn'))=0 and not exists(select 1 from catalog.comments c where c.catalog_id=b.catalog_id and c.book_id=b.id and position(term in translate(lower(c.body),'áàâãäåéèêëíìîïóòôõöúùûüçñ','aaaaaaeeeeiiiiooooouuuucn'))>0))`
 		const pageQuery = `with recursive filtered as (
  select b.* from catalog.books b where ` + filter + `
 ), automatic_groups as (
