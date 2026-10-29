@@ -634,7 +634,7 @@ export default function App() {
               </div>
             )}
           </div>
-          {error && (
+          {error && !editing && (
             <div role="alert" className="error">
               {error}
               <button aria-label="Fechar mensagem" onClick={() => setError("")}>
