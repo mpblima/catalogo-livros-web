@@ -2,12 +2,6 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { ClerkProvider } from "@clerk/react";
 import App from "./App";
-import "@fontsource/dm-sans/latin-400.css";
-import "@fontsource/dm-sans/latin-500.css";
-import "@fontsource/dm-sans/latin-600.css";
-import "@fontsource/dm-sans/latin-700.css";
-import "@fontsource/lora/latin-400.css";
-import "@fontsource/lora/latin-500.css";
 import "./style.css";
 const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 createRoot(document.getElementById("root")!).render(

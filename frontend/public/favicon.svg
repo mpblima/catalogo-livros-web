@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <title>Praesens.tech — Avatar Redes Sociais</title>
+  <desc>Imagem de perfil para LinkedIn, Instagram, WhatsApp e redes sociais</desc>
+  <rect width="400" height="400" fill="#4A1B0C"/>
+  <g transform="translate(112, 90)">
+    <rect x="0"  y="80" width="42" height="70" rx="9" fill="#F0997B"/>
+    <rect x="58" y="20" width="42" height="130" rx="9" fill="#FAECE7"/>
+    <rect x="116" y="48" width="42" height="102" rx="9" fill="#F5C4B3"/>
+    <line x1="0" y1="152" x2="158" y2="152" stroke="#D85A30" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <text x="200" y="306" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700" fill="#FAECE7" letter-spacing="-1" text-anchor="middle">Praesens</text>
+  <text x="200" y="344" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="400" fill="#F0997B" letter-spacing="5" text-anchor="middle">.tech</text>
+</svg>

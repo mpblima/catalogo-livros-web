@@ -10,7 +10,7 @@ export function Welcome() {
       <div className="welcome-shell">
         <header className="welcome-nav">
           <a className="brand" href="#inicio" aria-label="Catálogo de Livros, início">
-            <span aria-hidden="true">▤</span> Catálogo de Livros
+            <img src="/praesens-logo-escuro.svg" alt="Praesens.tech" />
           </a>
           <nav aria-label="Navegação principal">
             <a href="#recursos">Recursos</a>
@@ -97,7 +97,7 @@ export function Welcome() {
             </a>
           </div>
           <div className="web-desktop-aside">
-            <span className="aside-mark" aria-hidden="true">▤</span>
+            <img className="aside-mark" src="/praesens-simbolo.svg" alt="" />
             <h3>Seus arquivos continuam no seu computador.</h3>
             <p>A sincronização do catálogo leva informações dos livros e anotações. Os arquivos digitais, o OCR e o progresso local de leitura permanecem no desktop.</p>
             <a href={desktopDownloads}>Ver downloads e detalhes da versão ↗</a>

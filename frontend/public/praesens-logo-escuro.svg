@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 180" width="680" height="180">
+  <title>Praesens.tech — Logo Escuro</title>
+  <rect width="680" height="180" fill="#4A1B0C"/>
+  <rect x="0"   y="80" width="38" height="60" rx="8" fill="#F5C4B3"/>
+  <rect x="52"  y="28" width="38" height="112" rx="8" fill="#FAECE7"/>
+  <rect x="104" y="52" width="38" height="88" rx="8" fill="#F0997B"/>
+  <line x1="0" y1="142" x2="142" y2="142" stroke="#D85A30" stroke-width="3" stroke-linecap="round"/>
+  <text x="162" y="108" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700" fill="#FAECE7" letter-spacing="-2">Praesens</text>
+  <text x="163" y="142" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#F0997B" letter-spacing="10">.tech</text>
+</svg>

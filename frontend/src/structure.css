@@ -22,12 +22,12 @@
   padding: 7px 8px;
   text-align: left;
   width: 100%;
-  color: #284b39;
+  color: #993C1D;
   overflow-wrap: anywhere;
   text-transform: capitalize;
 }
 .category-tree button[aria-pressed="true"] {
-  background: #e3ebdb;
+  background: #FAECE7;
   font-weight: 700;
 }
 .category-tree summary {

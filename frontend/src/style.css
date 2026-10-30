@@ -1,11 +1,11 @@
 :root {
-  font-family: "DM Sans", sans-serif;
-  color: #1e302b;
-  background: #f5f4ee;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #4A1B0C;
+  background: #FAECE7;
   font-synthesis: none;
-  --green: #173f32;
-  --muted: #68746b;
-  --line: #dedfd5;
+  --green: #D85A30;
+  --muted: #993C1D;
+  --line: #F5C4B3;
 }
 * {
   box-sizing: border-box;
@@ -22,13 +22,13 @@ textarea {
 button {
   cursor: pointer;
   border: 1px solid var(--line);
-  background: #fffefa;
+  background: #FFFFFF;
   border-radius: 6px;
   padding: 10px 14px;
   color: inherit;
 }
 button:hover {
-  border-color: #839889;
+  border-color: #D85A30;
 }
 button:disabled {
   opacity: 0.5;
@@ -38,7 +38,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #b5cf74;
+  outline: 3px solid #F0997B;
   outline-offset: 3px;
 }
 .primary {
@@ -47,11 +47,11 @@ textarea:focus-visible {
   border-color: var(--green);
 }
 .danger {
-  color: #9b3527;
+  color: #993C1D;
 }
 h1,
 h2 {
-  font-family: "Lora", Georgia, serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-weight: 500;
 }
 h1 {
@@ -93,14 +93,14 @@ p {
   display: flex;
   gap: 13px;
   align-items: center;
-  font-family: "Lora", serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 25px;
 }
+.brand > img { width: 42px; height: 42px; object-fit: contain; }
 .brand small {
   display: block;
   font:
-    9px "DM Sans",
-    sans-serif;
+    9px Arial, Helvetica, sans-serif;
   letter-spacing: 2px;
   margin-top: 6px;
   color: var(--muted);
@@ -146,8 +146,8 @@ nav button {
   font-size: 14px;
 }
 nav .active {
-  background: #e6ecdf;
-  color: #204a30;
+  background: #FAECE7;
+  color: #4A1B0C;
   font-weight: 700;
 }
 nav span {
@@ -159,7 +159,7 @@ nav span {
   background: transparent;
 }
 .aside-note {
-  font-family: "Lora", serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   line-height: 1.8;
   color: var(--muted);
@@ -184,9 +184,9 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid #cfd5c9;
+  border: 1px solid #F5C4B3;
   border-radius: 5px;
-  background: #fffefa;
+  background: #FFFFFF;
   color: inherit;
   padding: 12px;
   min-width: 0;
@@ -236,7 +236,7 @@ form {
 .cover {
   width: 86px;
   height: 120px;
-  background: #e4e8db;
+  background: #F5C4B3;
   border-radius: 3px;
   display: grid;
   place-items: center;
@@ -278,9 +278,9 @@ form {
   background: transparent;
 }
 .book-actions button[aria-pressed="true"] {
-  background: #e7eddf;
-  border-color: #c9d7b9;
-  color: #284b32;
+  background: #FAECE7;
+  border-color: #F0997B;
+  color: #993C1D;
 }
 .file-path {
   overflow-wrap: anywhere;
@@ -288,7 +288,7 @@ form {
 .empty {
   text-align: center;
   padding: 70px 25px;
-  border: 1px dashed #cfd5c9;
+  border: 1px dashed #F5C4B3;
   border-radius: 8px;
   margin-top: 25px;
 }
@@ -298,7 +298,7 @@ form {
 .overlay {
   position: fixed;
   inset: 0;
-  background: #10231e80;
+  background: #4A1B0C80;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -310,9 +310,9 @@ form {
   position: relative;
   width: min(100%, 600px);
   padding: 36px;
-  background: #f8f7f0;
+  background: #FAECE7;
   border-radius: 12px;
-  box-shadow: 0 20px 70px #0e241e33;
+  box-shadow: 0 20px 70px #4A1B0C33;
   max-height: calc(100vh - 70px);
   overflow: auto;
 }
@@ -340,15 +340,15 @@ form {
 .comment {
   border: 1px solid var(--line);
   border-radius: 12px 12px 12px 3px;
-  background: #fffefa;
+  background: #FFFFFF;
   padding: 13px 16px;
   margin: 12px 0;
   max-width: min(82%, 720px);
 }
 .comment.own {
   margin-left: auto;
-  background: #e8efe3;
-  border-color: #d3dfce;
+  background: #FAECE7;
+  border-color: #F5C4B3;
   border-radius: 12px 12px 3px 12px;
 }
 .comment small {
@@ -404,7 +404,7 @@ form {
 .admin-user {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fffefa;
+  background: #FFFFFF;
 }
 .admin-user summary {
   display: flex;
@@ -443,7 +443,7 @@ form {
   margin-top: 14px;
 }
 .admin-user-actions .danger {
-  border-color: #d7aaa2;
+  border-color: #F0997B;
 }
 .error {
   background: #fbe7df;
@@ -547,7 +547,7 @@ form {
 }
 
 .collection-banner {
-  background: #193e32;
+  background: #4A1B0C;
   color: #f1f1d9;
   border-radius: 12px;
   padding: 27px 32px;
@@ -557,7 +557,7 @@ form {
   margin: 22px 0 30px;
 }
 .collection-banner .eyebrow {
-  color: #bbcd9e;
+  color: #F5C4B3;
   font-size: 10px;
 }
 .collection-banner h2 {
@@ -570,23 +570,23 @@ form {
   gap: 4px;
 }
 .banner-count strong {
-  font-family: "Lora", serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 44px;
   font-weight: 400;
 }
 .banner-count span {
   font-size: 11px;
-  color: #c6d4bd;
+  color: #F5C4B3;
 }
 .cover-title {
-  font-family: "Lora", serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 13px;
   line-height: 1.5;
   padding: 14px 9px;
   text-align: center;
   overflow: hidden;
   max-height: 100%;
-  border-left: 4px solid #cad3ba;
+  border-left: 4px solid #F0997B;
 }
 .cover-title small {
   display: block;
@@ -660,12 +660,12 @@ form {
   text-underline-offset: 3px;
 }
 .privacy-notice {
-  color: #1e302b;
+  color: #4A1B0C;
   text-align: left;
   max-width: 720px;
 }
 .privacy-notice a {
-  color: #173f32;
+  color: #993C1D;
 }
 .privacy-notice p {
   font-size: 15px;

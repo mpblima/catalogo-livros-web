@@ -463,7 +463,7 @@ export default function App() {
     <div className="app">
       <header>
         <div className="brand">
-          ▤{" "}
+          <img src="/praesens-simbolo.svg" alt="" />{" "}
           <span>
             Biblioteca<small>CATÁLOGO DE LIVROS</small>
           </span>
