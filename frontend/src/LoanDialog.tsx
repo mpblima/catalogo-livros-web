@@ -36,7 +36,7 @@ export function LoanDialog({ book, catalog, mode, busy, error, onClose, onSubmit
         </header>
 
         <div className="loan-book-card">
-          <div className="loan-book-cover"><BookCover url={book.cover_url} stored={false} catalog={catalog} id={book.id} version={book.version} title={book.title} /></div>
+          <div className="loan-book-cover"><BookCover url={book.cover_url} stored={book.metadata._stored_cover === true} catalog={catalog} id={book.id} version={book.version} title={book.title} /></div>
           <div className="loan-book-copy"><span>{digital ? "LIVRO DIGITAL" : "LIVRO FÍSICO"}</span><strong>{book.title}</strong><small>{book.format}{book.category ? ` · ${book.category}` : ""}</small></div>
         </div>
 
