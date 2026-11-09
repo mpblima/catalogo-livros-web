@@ -104,6 +104,10 @@ func TestIntegration(t *testing.T) {
 	other := catalogFor("other")
 	physical := req("owner", "POST", "/api/catalogs/"+id+"/books", `{"title":"Livro físico","kind":"physical","metadata":{"isbn":"0134685997","subtitle":"Subtítulo","pages":"416","page":"12","notes":"Minha nota","vendor":{"code":"42"}}}`)
 	expect(physical, 201)
+	var physicalBook Book
+	if err = json.Unmarshal(physical.Body.Bytes(), &physicalBook); err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(physical.Body.String(), `"isbn":"9780134685991"`) || !strings.Contains(physical.Body.String(), `"vendor":{"code":"42"}`) {
 		t.Fatal(physical.Body.String())
 	}
@@ -170,17 +174,45 @@ func TestIntegration(t *testing.T) {
 	expect(cachedResponse, 304)
 
 	expect(req("guest", "POST", base+"/members", `{"email":"third@example.com"}`), 403)
-	expect(req("guest", "POST", base+"/books/"+book.ID+"/comments", `{"body":"Minha anotação","author_id":"owner"}`), 400)
-	expect(req("guest", "POST", base+"/books/"+book.ID+"/comments", `{"body":"Minha anotação"}`), 201)
+	expect(req("guest", "POST", base+"/books/"+book.ID+"/comments", `{"body":"Minha anotação","author_id":"owner"}`), 403)
+	expect(req("guest", "POST", base+"/books/"+book.ID+"/comments", `{"body":"Minha anotação"}`), 403)
 	w := req("owner", "GET", base+"/books/"+book.ID+"/comments", "")
 	expect(w, 200)
-	if !strings.Contains(w.Body.String(), `"email":"guest@example.com"`) {
-		t.Fatal("wrong author: " + w.Body.String())
+	if strings.Contains(w.Body.String(), `"email":"guest@example.com"`) {
+		t.Fatal("shared participant added an annotation: " + w.Body.String())
 	}
+	digitalRequest := req("guest", "POST", base+"/books/"+book.ID+"/loans", `{"note":"Gostaria de receber uma cópia"}`)
+	expect(digitalRequest, 201)
+	var requestedDigital map[string]any
+	if err = json.Unmarshal(digitalRequest.Body.Bytes(), &requestedDigital); err != nil {
+		t.Fatal(err)
+	}
+	loanRows := req("owner", "GET", base+"/loans", "")
+	expect(loanRows, 200)
+	var digitalLoans []map[string]any
+	if err = json.Unmarshal(loanRows.Body.Bytes(), &digitalLoans); err != nil || len(digitalLoans) != 1 {
+		t.Fatalf("unexpected loan list: %s (%v)", loanRows.Body.String(), err)
+	}
+	digitalLoanID := digitalLoans[0]["id"].(string)
+	expect(req("guest", "POST", base+"/loans/"+digitalLoanID+"/action", `{"action":"send"}`), 403)
+	expect(req("owner", "POST", base+"/loans/"+digitalLoanID+"/action", `{"action":"send"}`), 204)
+	physicalRequest := req("guest", "POST", base+"/books/"+physicalBook.ID+"/loans", `{}`)
+	expect(physicalRequest, 201)
+	loanRows = req("owner", "GET", base+"/loans", "")
+	var allLoans []map[string]any
+	if err = json.Unmarshal(loanRows.Body.Bytes(), &allLoans); err != nil || len(allLoans) != 2 {
+		t.Fatalf("unexpected loan list: %s (%v)", loanRows.Body.String(), err)
+	}
+	physicalLoanID := allLoans[0]["id"].(string)
+	if allLoans[0]["kind"] != "physical" {
+		physicalLoanID = allLoans[1]["id"].(string)
+	}
+	expect(req("owner", "POST", base+"/loans/"+physicalLoanID+"/action", `{"action":"approve"}`), 204)
+	expect(req("owner", "POST", base+"/loans/"+physicalLoanID+"/action", `{"action":"return"}`), 204)
 	book.Favorite = false
 	payload, _ := json.Marshal(book)
-	expect(req("guest", "PUT", base+"/books/"+book.ID, string(payload)), 200)
-	expect(req("owner", "PUT", base+"/books/"+book.ID, string(payload)), 409)
+	expect(req("guest", "PUT", base+"/books/"+book.ID, string(payload)), 403)
+	expect(req("owner", "PUT", base+"/books/"+book.ID, string(payload)), 200)
 	expect(req("owner", "DELETE", base+"/members/guest@example.com", ""), 204)
 	expect(req("guest", "GET", base+"/books", ""), 404)
 	deniedCache := httptest.NewRecorder()
