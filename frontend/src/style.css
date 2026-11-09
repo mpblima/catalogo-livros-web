@@ -323,6 +323,145 @@ form {
   font-size: 14px;
   color: var(--muted);
 }
+.loan-overlay {
+  align-items: center;
+  padding: 24px;
+  backdrop-filter: blur(5px);
+  background: #28110db8;
+}
+.loan-dialog {
+  width: min(100%, 560px);
+  padding: 0;
+  overflow: hidden auto;
+  border: 1px solid #f5c4b3;
+  border-radius: 18px;
+  background: #fffdfb;
+  box-shadow: 0 28px 90px #1d0c0866;
+}
+.loan-dialog .close {
+  z-index: 1;
+  top: 17px;
+  right: 17px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #ffffff35;
+  border-radius: 50%;
+  background: #ffffff16;
+  color: white;
+  font-size: 27px;
+  line-height: 1;
+}
+.loan-dialog .close:hover { background: #ffffff2b; }
+.loan-dialog-header {
+  position: relative;
+  display: block;
+  height: auto;
+  padding: 30px 34px 26px;
+  overflow: hidden;
+  background: linear-gradient(130deg, #4a1b0c, #782d16 72%, #993c1d);
+  color: white;
+}
+.loan-dialog-header::after {
+  position: absolute;
+  right: -54px;
+  bottom: -128px;
+  width: 250px;
+  height: 250px;
+  border: 1px solid #ffffff20;
+  border-radius: 50%;
+  box-shadow: 0 0 0 26px #ffffff0b, 0 0 0 52px #ffffff08;
+  content: "";
+}
+.loan-dialog-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 19px;
+  place-items: center;
+  border: 1px solid #ffffff35;
+  border-radius: 13px;
+  background: #ffffff14;
+  color: #ffd2bd;
+  font-size: 24px;
+}
+.loan-dialog-header .eyebrow {
+  margin-bottom: 5px;
+  color: #f5c4b3;
+  font-size: 9px;
+  letter-spacing: 1.7px;
+}
+.loan-dialog-header h2 {
+  position: relative;
+  z-index: 1;
+  max-width: 430px;
+  margin: 0;
+  color: white;
+  font-size: clamp(23px, 5vw, 29px);
+  font-weight: 600;
+  letter-spacing: -.65px;
+}
+.loan-dialog-header > p:last-child {
+  position: relative;
+  z-index: 1;
+  max-width: 410px;
+  margin: 8px 0 0;
+  color: #f7ddd2;
+  font-size: 13px;
+}
+.loan-book-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 22px 30px 3px;
+  padding: 13px;
+  border: 1px solid #f1ded6;
+  border-radius: 13px;
+  background: #fff9f5;
+}
+.loan-book-cover {
+  display: grid;
+  width: 56px;
+  height: 76px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #f5c4b3, #faece7);
+  box-shadow: 0 3px 9px #4a1b0c1c;
+  color: #993c1d;
+  font-size: 10px;
+}
+.loan-book-cover img { width: 100%; height: 100%; object-fit: cover; }
+.loan-book-copy { display: grid; min-width: 0; gap: 5px; }
+.loan-book-copy > span { color: #993c1d; font-size: 9px; font-weight: 700; letter-spacing: 1.15px; }
+.loan-book-copy strong { overflow: hidden; color: #4a1b0c; font-size: 15px; line-height: 1.4; text-overflow: ellipsis; }
+.loan-book-copy small { color: #876f65; font-size: 11px; }
+.loan-dialog-form { display: grid; gap: 15px; padding: 21px 30px 25px; }
+.loan-dialog-form > label { display: grid; gap: 7px; color: #4a1b0c; font-size: 12px; font-weight: 700; }
+.loan-dialog-form input, .loan-dialog-form textarea {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #e8d5cd;
+  border-radius: 9px;
+  background: white;
+  color: #4a1b0c;
+  font-size: 13px;
+  font-weight: 400;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.loan-dialog-form textarea { min-height: 90px; resize: vertical; }
+.loan-dialog-form input:focus, .loan-dialog-form textarea:focus { border-color: #b9482d; outline: 0; box-shadow: 0 0 0 3px #b9482d1c; }
+.loan-dialog-form input::placeholder, .loan-dialog-form textarea::placeholder { color: #b19b90; }
+.loan-optional { margin-left: 4px; color: #a38c80; font-size: 10px; font-weight: 400; }
+.loan-kind-note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; }
+.loan-kind-note.physical { background: #f8eee8; color: #763019; }
+.loan-kind-note.digital { background: #f2f2e9; color: #555b32; }
+.loan-kind-note > span { flex: 0 0 auto; font-size: 15px; font-weight: 700; }
+.loan-kind-note p { margin: 0; font-size: 11px; line-height: 1.6; }
+.loan-dialog-error { margin: -4px 0 0; color: #a22f1c; font-size: 12px; }
+.loan-dialog-footer { display: flex; justify-content: flex-end; gap: 9px; padding-top: 2px; }
+.loan-dialog-footer button { min-height: 42px; border-radius: 9px; font-size: 12px; font-weight: 700; }
+.loan-dialog-footer .primary { padding-inline: 17px; }
 .close {
   position: absolute;
   right: 12px;
@@ -534,6 +673,12 @@ form {
   .dialog {
     padding: 28px 20px;
   }
+  .loan-dialog { padding: 0; border-radius: 14px; }
+  .loan-dialog-header { padding: 24px 22px 21px; }
+  .loan-dialog-header h2 { max-width: calc(100% - 22px); }
+  .loan-book-card { margin: 16px 18px 0; }
+  .loan-dialog-form { gap: 13px; padding: 18px 18px 20px; }
+  .loan-dialog-footer button { flex: 1; }
   .overlay {
     padding: 15px 10px;
   }

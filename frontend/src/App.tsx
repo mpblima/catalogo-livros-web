@@ -8,6 +8,7 @@ import {
 } from "./CatalogStructure";
 import { groupBooks, type Relation } from "./structure";
 import { BookEditor } from "./BookEditor";
+import { LoanDialog } from "./LoanDialog";
 import { Welcome } from "./Welcome";
 import type { Book } from "./book";
 import { useAuth, UserButton } from "@clerk/react";
@@ -121,6 +122,7 @@ export default function App() {
   const [members, setMembers] = useState<string[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loanPanel, setLoanPanel] = useState(false);
+  const [loanDialog, setLoanDialog] = useState<{ book: Book; mode: "register" | "request" } | null>(null);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [managedUserPage, setManagedUserPage] = useState(1);
@@ -270,6 +272,7 @@ export default function App() {
     setSelected(null);
     setEditing(null);
     setPanel(null);
+    setLoanDialog(null);
     setCategory("");
     setQuery("");
     if (!catalog) return;
@@ -330,7 +333,8 @@ export default function App() {
       !categoryManager &&
       !relationBook &&
       !pairing &&
-      !deviceManager
+      !deviceManager &&
+      !loanDialog
     )
       return;
     const previous = document.activeElement as HTMLElement | null;
@@ -356,6 +360,7 @@ export default function App() {
         setCategoryManager(false);
         setRelationBook(null);
         setDeviceManager(false);
+        setLoanDialog(null);
         closePairing();
       }
       if (event.key === "Tab") {
@@ -384,6 +389,7 @@ export default function App() {
     Boolean(relationBook),
     Boolean(pairing),
     deviceManager,
+    Boolean(loanDialog),
   ]);
   const base = `/catalogs/${catalog}`;
   const current = catalogs.find((c) => c.id === catalog);
@@ -775,9 +781,9 @@ export default function App() {
                             <button disabled={busy} aria-pressed={b.reading} onClick={() => toggle(b, "reading")}>{b.reading ? "✓ Estou lendo" : "Marcar leitura"}</button>
                             <button onClick={() => setEditing({ ...b, metadata: { ...b.metadata } })}>Editar</button>
                           </>}
-                          {!current?.owner && <button disabled={busy} onClick={() => { const note = window.prompt("Mensagem ao responsável (opcional):") || ""; act(async()=>{ await api(`${base}/books/${b.id}/loans`,"POST",{note}); setLoans(await api<Loan[]>(`${base}/loans`)); setLoanPanel(true); }); }}>{b.kind === "digital" ? "Pedir cópia digital" : "Pedir empréstimo"}</button>}
+                          {!current?.owner && <button disabled={busy} onClick={() => { setError(""); setLoanDialog({book:b,mode:"request"}); }}>{b.kind === "digital" ? "Pedir cópia digital" : "Pedir empréstimo"}</button>}
                           {current?.owner && <button onClick={()=>{setLoanPanel(true);api<Loan[]>(`${base}/loans`).then(setLoans).catch((e)=>setError(e.message));}}>Empréstimos</button>}
-                          {current?.owner && <button disabled={busy} onClick={()=>{const name=window.prompt("Nome de quem receberá o livro:");if(!name)return;const recipient_email=window.prompt("E-mail de quem receberá o livro:");if(!recipient_email)return;act(async()=>{await api(`${base}/books/${b.id}/loans`,"POST",{recipient_name:name,recipient_email});setLoans(await api<Loan[]>(`${base}/loans`));setLoanPanel(true);});}}>{b.kind==="physical"?"Registrar empréstimo":"Registrar cópia enviada"}</button>}
+                          {current?.owner && <button disabled={busy} onClick={()=>{setError("");setLoanDialog({book:b,mode:"register"});}}>{b.kind==="physical"?"Registrar empréstimo":"Registrar cópia enviada"}</button>}
                           {current?.owner && <button disabled={busy} onClick={() => openNotes(b)}>Anotações</button>}
                           {current?.owner && b.kind === "digital" && (
                             <button onClick={() => setRelationBook(b)}>
@@ -947,6 +953,7 @@ export default function App() {
           </section>
         </div>
       )}
+      {loanDialog && <LoanDialog book={loanDialog.book} catalog={catalog} mode={loanDialog.mode} busy={busy} error={error} onClose={()=>setLoanDialog(null)} onSubmit={(values)=>{const {book}=loanDialog;void act(async()=>{await api(`${base}/books/${book.id}/loans`,"POST",values);setLoans(await api<Loan[]>(`${base}/loans`));setLoanDialog(null);setLoanPanel(true);});}} />}
       {loanPanel && (
         <div className="overlay">
           <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="loans-title">
