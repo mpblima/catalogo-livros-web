@@ -281,7 +281,7 @@ func TestIntegration(t *testing.T) {
 	expect(req("owner", "GET", base+"/books", ""), 403)
 	expect(req("unlimited", "GET", base+"/books", ""), 403) // Suspended owner disables shared cloud access too.
 
-	// Erasure is explicit, preserves a shared annotation, and retries provider failure safely.
+	// Erasure is explicit, anonymizes a shared loan record, and retries provider failure safely.
 	expect(req("next", "PUT", "/api/admin/access", `{"email":"owner@example.com","enabled":true}`), 200)
 	otherBase := "/api/catalogs/" + other
 	foreignBookResponse := req("other", "POST", otherBase+"/books", `{"title":"Acervo de outra pessoa","kind":"digital"}`)
@@ -289,7 +289,7 @@ func TestIntegration(t *testing.T) {
 	var foreignBook Book
 	json.Unmarshal(foreignBookResponse.Body.Bytes(), &foreignBook)
 	expect(req("other", "POST", otherBase+"/members", `{"email":"owner@example.com"}`), 201)
-	expect(req("owner", "POST", otherBase+"/books/"+foreignBook.ID+"/comments", `{"body":"Preservar o histórico compartilhado"}`), 201)
+	expect(req("owner", "POST", otherBase+"/books/"+foreignBook.ID+"/loans", `{}`), 201)
 	var requestID string
 	if err = pool.QueryRow(context.Background(), `select id::text from catalog.privacy_requests where user_id='owner'`).Scan(&requestID); err != nil {
 		t.Fatal(err)
@@ -303,10 +303,13 @@ func TestIntegration(t *testing.T) {
 	if err = pool.QueryRow(context.Background(), `select count(*)from catalog.catalogs where owner_id='owner'`).Scan(&count); err != nil || count != 0 {
 		t.Fatalf("owned catalog survived: %d %v", count, err)
 	}
-	remaining := req("other", "GET", otherBase+"/books/"+foreignBook.ID+"/comments", "")
-	expect(remaining, 200)
-	if !strings.Contains(remaining.Body.String(), "Conta excluída") || !strings.Contains(remaining.Body.String(), "Preservar o histórico compartilhado") || strings.Contains(remaining.Body.String(), "owner@example.com") {
-		t.Fatal(remaining.Body.String())
+	var borrowerName, borrowerEmail string
+	var borrowerID *string
+	if err = pool.QueryRow(context.Background(), `select borrower_name,borrower_email,borrower_id from catalog.book_loans where book_id=$1`, foreignBook.ID).Scan(&borrowerName, &borrowerEmail, &borrowerID); err != nil {
+		t.Fatal(err)
+	}
+	if borrowerName != "Conta excluída" || !strings.HasPrefix(borrowerEmail, "erased+") || borrowerID != nil {
+		t.Fatalf("shared loan was not anonymized: %q %q %v", borrowerName, borrowerEmail, borrowerID)
 	}
 	expect(req("next", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 200)
 	expect(req("next", "POST", erasurePath, `{"confirmation":"EXCLUIR"}`), 200)
