@@ -15,6 +15,7 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request) error {
  'account',(select to_jsonb(u) from catalog.users u where u.id=$1),
  'owned_catalogs',coalesce((select jsonb_agg(to_jsonb(c)) from catalog.catalogs c where c.owner_id=$1),'[]'::jsonb),
  'books',coalesce((select jsonb_agg(to_jsonb(b)) from catalog.books b join catalog.catalogs c on c.id=b.catalog_id where c.owner_id=$1),'[]'::jsonb),
+ 'loans',coalesce((select jsonb_agg(to_jsonb(l)) from catalog.book_loans l where l.borrower_id=$1 or l.catalog_id in(select id from catalog.catalogs where owner_id=$1)),'[]'::jsonb),
  'annotations',coalesce((select jsonb_agg(to_jsonb(n)) from catalog.comments n where n.author_id=$1),'[]'::jsonb))`, a.ID).Scan(&data)
 	if err != nil {
 		return err
@@ -126,6 +127,7 @@ func (s *Server) completeErasure(w http.ResponseWriter, r *http.Request) error {
 			`delete from catalog.comments where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
 			`delete from catalog.sync_events where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
 			`delete from catalog.book_relations where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
+			`update catalog.book_loans set borrower_id=null,borrower_name='Conta excluída',borrower_email='erased+'||replace($1,'-','')||'@invalid.example' where borrower_id=$1`,
 			`delete from catalog.book_covers where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
 			`delete from catalog.books where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,
 			`delete from catalog.categories where catalog_id in(select id from catalog.catalogs where owner_id=$1)`,

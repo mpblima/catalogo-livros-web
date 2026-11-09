@@ -233,7 +233,7 @@ select (select count(*) from filtered),(select count(*) from group_roots),coales
 	return nil
 }
 func (s *Server) createBook(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var b Book
@@ -272,7 +272,7 @@ func (s *Server) createBook(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) updateBook(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var b Book
@@ -317,7 +317,7 @@ func (s *Server) updateBook(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) deleteBook(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var body struct {
@@ -368,7 +368,7 @@ func (s *Server) comments(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) addComment(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var body struct {

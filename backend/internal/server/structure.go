@@ -56,7 +56,7 @@ func (s *Server) categories(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) changeCategory(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var body struct {
@@ -180,7 +180,7 @@ func (s *Server) relations(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) changeRelation(w http.ResponseWriter, r *http.Request) error {
-	if err := s.access(r, false); err != nil {
+	if err := s.access(r, true); err != nil {
 		return err
 	}
 	var body relation

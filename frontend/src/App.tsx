@@ -21,6 +21,7 @@ type Account = {
   universal: boolean;
 };
 type Catalog = { id: string; name: string; owner: boolean };
+type Loan = { id:string; book_id:string; title:string; kind:"physical"|"digital"; borrower_name:string; borrower_email:string; note:string; status:"requested"|"active"|"returned"|"sent"|"rejected"; requested_at:string; owner:boolean };
 
 type Comment = {
   origin?: string;
@@ -118,6 +119,8 @@ export default function App() {
     { id: string; email: string; created_at: string; status: string }[]
   >([]);
   const [members, setMembers] = useState<string[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loanPanel, setLoanPanel] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [managedUserPage, setManagedUserPage] = useState(1);
@@ -482,6 +485,7 @@ export default function App() {
             {refreshSeconds > 0 && ![15, 30, 60, 300].includes(refreshSeconds) && <input aria-label="Intervalo personalizado em minutos" type="number" min={1} max={1440} value={Math.round(refreshSeconds / 60)} onChange={(e) => { const minutes = Number(e.target.value); if (minutes >= 1 && minutes <= 1440) setRefreshSeconds(minutes * 60); }} />}
           </label>
           <button disabled={!catalog || loading} onClick={() => Promise.all([reload(catalog), selected ? api<Comment[]>(`${base}/books/${selected.id}/comments`).then(setComments) : Promise.resolve()]).catch((e) => setError(e.message))}>Atualizar agora</button>
+          <button disabled={!catalog} onClick={() => { setLoanPanel(true); api<Loan[]>(`${base}/loans`).then(setLoans).catch((e) => setError(e.message)); }}>Empréstimos</button>
           {account?.admin && (
             <button onClick={() => openPanel("admin")}>Administração</button>
           )}
@@ -583,12 +587,12 @@ export default function App() {
               setShelf("all");
             }}
           />
-          <button
+          {current?.owner && <button
             className="category-management"
             onClick={() => setCategoryManager(true)}
           >
             Gerenciar categorias
-          </button>
+          </button>}
           <button
             className="privacy-link"
             onClick={() => setDeviceManager(true)}
@@ -620,7 +624,7 @@ export default function App() {
                         : "Todos os livros"}
               </h1>
             </div>
-            {catalog && (
+            {catalog && current?.owner && (
               <div className="actions add-books">
                 <button
                   className="primary"
@@ -766,35 +770,20 @@ export default function App() {
                           </label>
                         )}
                         <div className="book-actions">
-                          <button
-                            disabled={busy}
-                            aria-pressed={b.favorite}
-                            onClick={() => toggle(b, "favorite")}
-                          >
-                            {b.favorite ? "★ Favorito" : "☆ Favoritar"}
-                          </button>
-                          <button
-                            disabled={busy}
-                            aria-pressed={b.reading}
-                            onClick={() => toggle(b, "reading")}
-                          >
-                            {b.reading ? "✓ Estou lendo" : "Marcar leitura"}
-                          </button>
-                          <button disabled={busy} onClick={() => openNotes(b)}>
-                            Anotações
-                          </button>
-                          {b.kind === "digital" && (
+                          {current?.owner && <>
+                            <button disabled={busy} aria-pressed={b.favorite} onClick={() => toggle(b, "favorite")}>{b.favorite ? "★ Favorito" : "☆ Favoritar"}</button>
+                            <button disabled={busy} aria-pressed={b.reading} onClick={() => toggle(b, "reading")}>{b.reading ? "✓ Estou lendo" : "Marcar leitura"}</button>
+                            <button onClick={() => setEditing({ ...b, metadata: { ...b.metadata } })}>Editar</button>
+                          </>}
+                          {!current?.owner && <button disabled={busy} onClick={() => { const note = window.prompt("Mensagem ao responsável (opcional):") || ""; act(async()=>{ await api(`${base}/books/${b.id}/loans`,"POST",{note}); setLoans(await api<Loan[]>(`${base}/loans`)); setLoanPanel(true); }); }}>{b.kind === "digital" ? "Pedir cópia digital" : "Pedir empréstimo"}</button>}
+                          {current?.owner && <button onClick={()=>{setLoanPanel(true);api<Loan[]>(`${base}/loans`).then(setLoans).catch((e)=>setError(e.message));}}>Empréstimos</button>}
+                          {current?.owner && <button disabled={busy} onClick={()=>{const name=window.prompt("Nome de quem receberá o livro:");if(!name)return;const recipient_email=window.prompt("E-mail de quem receberá o livro:");if(!recipient_email)return;act(async()=>{await api(`${base}/books/${b.id}/loans`,"POST",{recipient_name:name,recipient_email});setLoans(await api<Loan[]>(`${base}/loans`));setLoanPanel(true);});}}>{b.kind==="physical"?"Registrar empréstimo":"Registrar cópia enviada"}</button>}
+                          {current?.owner && <button disabled={busy} onClick={() => openNotes(b)}>Anotações</button>}
+                          {current?.owner && b.kind === "digital" && (
                             <button onClick={() => setRelationBook(b)}>
                               Versões e amostras
                             </button>
                           )}
-                          <button
-                            onClick={() =>
-                              setEditing({ ...b, metadata: { ...b.metadata } })
-                            }
-                          >
-                            Editar
-                          </button>
                         </div>
                       </div>
                     </article>
@@ -955,6 +944,29 @@ export default function App() {
                 Adicionar anotação
               </button>
             </form>
+          </section>
+        </div>
+      )}
+      {loanPanel && (
+        <div className="overlay">
+          <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="loans-title">
+            <button className="close" aria-label="Fechar empréstimos" onClick={()=>setLoanPanel(false)}>×</button>
+            <p className="eyebrow">ACOMPANHAMENTO</p>
+            <h2 id="loans-title">Empréstimos e pedidos</h2>
+            {current?.owner && <p>Pedidos de livros físicos ficam ativos até você registrar a devolução. Para livros digitais, marque quando enviar a cópia.</p>}
+            {!loans.length && <p>Nenhum pedido ou empréstimo neste catálogo.</p>}
+            <ul className="access-list">
+              {loans.map((loan)=><li key={loan.id} style={{display:"block"}}>
+                <strong>{loan.title}</strong><br/><span>{loan.kind==="physical"?"Físico":"Digital"} · {loan.borrower_name} ({loan.borrower_email}) · {({requested:"Pedido pendente",active:"Emprestado",returned:"Devolvido",sent:"Cópia enviada",rejected:"Recusado"} as Record<string,string>)[loan.status]}</span>
+                {loan.note && <p>{loan.note}</p>}
+                {current?.owner && loan.status==="requested" && <div className="book-actions">
+                  <button disabled={busy} onClick={()=>act(async()=>{await api(`${base}/loans/${loan.id}/action`,"POST",{action:loan.kind==="physical"?"approve":"send"});setLoans(await api<Loan[]>(`${base}/loans`));})}>{loan.kind==="physical"?"Registrar empréstimo":"Registrar cópia enviada"}</button>
+                  <button disabled={busy} onClick={()=>act(async()=>{await api(`${base}/loans/${loan.id}/action`,"POST",{action:"reject"});setLoans(await api<Loan[]>(`${base}/loans`));})}>Recusar pedido</button>
+                </div>}
+                {current?.owner && loan.status==="active" && <button disabled={busy} onClick={()=>act(async()=>{await api(`${base}/loans/${loan.id}/action`,"POST",{action:"return"});setLoans(await api<Loan[]>(`${base}/loans`));})}>Registrar devolução</button>}
+              </li>)}
+            </ul>
+            <button onClick={()=>api<Loan[]>(`${base}/loans`).then(setLoans).catch((e)=>setError(e.message))}>Atualizar lista</button>
           </section>
         </div>
       )}

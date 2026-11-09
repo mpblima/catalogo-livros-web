@@ -202,8 +202,16 @@ func (s *Server) deviceIdentity(ctx context.Context, token, path string) (Identi
 	if err != nil || s.LookupIdentity == nil {
 		return Identity{}, "", "", problem(401, "Conexão desktop inválida ou expirada.")
 	}
-	if path != "/api/catalogs/"+catalog+"/sync" && path != "/api/devices/"+device {
-		return Identity{}, "", "", problem(403, "Este token só permite sincronizar o catálogo associado e desconectar o dispositivo.")
+	allowed := path == "/api/catalogs/"+catalog+"/sync" || path == "/api/devices/"+device || path == "/api/catalogs/"+catalog+"/loans"
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 6 && parts[0] == "api" && parts[1] == "catalogs" && parts[2] == catalog && parts[3] == "loans" && uuid.Validate(parts[4]) == nil && parts[5] == "action" {
+		allowed = true
+	}
+	if len(parts) == 6 && parts[0] == "api" && parts[1] == "catalogs" && parts[2] == catalog && parts[3] == "books" && uuid.Validate(parts[4]) == nil && parts[5] == "loans" {
+		allowed = true
+	}
+	if !allowed {
+		return Identity{}, "", "", problem(403, "Este token só permite sincronizar o catálogo associado, acompanhar empréstimos e desconectar o dispositivo.")
 	}
 	identity, err := s.LookupIdentity(ctx, uid)
 	return identity, device, catalog, err
